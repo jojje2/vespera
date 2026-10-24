@@ -229,6 +229,20 @@
               </div>
               <div id="save-status-msg" class="save-status-msg"></div>
             </div>
+
+            <!-- TAB 4 SUB-SECTION: KEYBOARD CONTROLS CONFIGURATION -->
+            <div class="settings-card controls-card">
+              <div class="controls-card-header">
+                <div>
+                  <h3>Konfigurera Tangentbordskontroller</h3>
+                  <p class="small-note">Klicka på en tangentknapp och tryck sedan på valfri tangent på tangentbordet för att ändra kontrollen. Varje handling har en primär och sekundär tangent. Ändringarna sparas automatiskt.</p>
+                </div>
+                <button id="btn-reset-controls" class="menu-btn secondary-btn" title="Återställ alla knappar till standard">Återställ Standardknappar</button>
+              </div>
+              <div id="controls-binding-list" class="controls-binding-grid">
+                <!-- Genereras dynamiskt via InputManager -->
+              </div>
+            </div>
           </div>
         </div>
       </div>
@@ -295,7 +309,7 @@
     </div>
 
     <!-- Persistent Game Version Indicator (Bottom Right) -->
-    <div id="version-badge" class="version-badge">v2.0.2</div>
+    <div id="version-badge" class="version-badge">v2.0.3</div>
   </div>
 
   <script src="bundle.js"></script>

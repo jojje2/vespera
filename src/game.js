@@ -7,41 +7,86 @@ import { Player, Enemy, Boss, rectOverlap } from './entities.js';
 import { Renderer } from './renderer.js';
 import { SaveSystem, createInitialState } from './save_system.js';
 
+export const DEFAULT_KEY_BINDINGS = {
+  left: { label: 'Gå Vänster', primary: 'KeyA', secondary: 'ArrowLeft' },
+  right: { label: 'Gå Höger', primary: 'KeyD', secondary: 'ArrowRight' },
+  up: { label: 'Titta Uppåt', primary: 'KeyW', secondary: 'ArrowUp' },
+  down: { label: 'Huka / Släpp ner', primary: 'KeyS', secondary: 'ArrowDown' },
+  jump: { label: 'Hoppa', primary: 'Space', secondary: '' },
+  attack: { label: 'Gloom-Cleaver Attack', primary: 'KeyJ', secondary: 'KeyZ' },
+  dash: { label: 'Skugg-rusning (Dash)', primary: 'KeyK', secondary: 'ShiftLeft' },
+  heavy: { label: 'Resonans-slag (Tung)', primary: 'KeyL', secondary: 'KeyV' },
+  heal: { label: 'Fokusera & Läka', primary: 'KeyH', secondary: 'KeyF' },
+  interact: { label: 'Interagera / Läs', primary: 'KeyE', secondary: 'Enter' },
+  quests: { label: 'Kodex & Uppdrag', primary: 'KeyQ', secondary: '' },
+  map: { label: 'Världskarta', primary: 'KeyM', secondary: '' },
+  inventory: { label: 'Reliker & Förmågor', primary: 'KeyI', secondary: '' },
+  pause: { label: 'Pausmeny / Avbryt', primary: 'Escape', secondary: '' }
+};
+
+export function formatKeyCode(code) {
+  if (!code) return '—';
+  if (code.startsWith('Key')) return code.slice(3);
+  if (code.startsWith('Digit')) return code.slice(5);
+  switch (code) {
+    case 'Space': return 'Mellanslag';
+    case 'ArrowLeft': return '← Vänster';
+    case 'ArrowRight': return '→ Höger';
+    case 'ArrowUp': return '↑ Upp';
+    case 'ArrowDown': return '↓ Ner';
+    case 'ShiftLeft': return 'V-Shift';
+    case 'ShiftRight': return 'H-Shift';
+    case 'ControlLeft': return 'V-Ctrl';
+    case 'ControlRight': return 'H-Ctrl';
+    case 'AltLeft': return 'V-Alt';
+    case 'AltRight': return 'H-Alt';
+    case 'Enter': return 'Enter ↵';
+    case 'Backspace': return 'Backspace';
+    case 'Tab': return 'Tab';
+    case 'Escape': return 'Esc';
+    default: return code;
+  }
+}
+
+export function formatKeyShort(code) {
+  if (!code) return 'E';
+  if (code.startsWith('Key')) return code.slice(3);
+  if (code.startsWith('Digit')) return code.slice(5);
+  switch (code) {
+    case 'Space': return 'Space';
+    case 'ArrowLeft': return '←';
+    case 'ArrowRight': return '→';
+    case 'ArrowUp': return '↑';
+    case 'ArrowDown': return '↓';
+    case 'ShiftLeft': return 'Shift';
+    case 'ShiftRight': return 'Shift';
+    case 'Enter': return '↵';
+    case 'Escape': return 'Esc';
+    default: return code;
+  }
+}
+
 class InputManager {
   constructor() {
     this.down = {};
     this.pressed = {};
-    this.keyMap = {
-      ArrowLeft: 'left',
-      KeyA: 'left',
-      ArrowRight: 'right',
-      KeyD: 'right',
-      ArrowUp: 'up',
-      KeyW: 'up',
-      ArrowDown: 'down',
-      KeyS: 'down',
-      Space: 'jump',
-      KeyJ: 'attack',
-      KeyZ: 'attack',
-      KeyX: 'attack',
-      KeyK: 'dash',
-      ShiftLeft: 'dash',
-      ShiftRight: 'dash',
-      KeyC: 'dash',
-      KeyL: 'heavy',
-      KeyV: 'heavy',
-      KeyE: 'interact',
-      Enter: 'interact',
-      KeyH: 'heal',
-      KeyF: 'heal',
-      KeyQ: 'quests',
-      KeyM: 'map',
-      KeyI: 'inventory',
-      Escape: 'pause'
-    };
+    this.rebindListener = null;
+    this.bindings = {};
+    this.keyMap = {};
+    this.loadBindings();
 
     window.addEventListener('keydown', (e) => {
       audio.init();
+
+      if (this.rebindListener) {
+        e.preventDefault();
+        e.stopPropagation();
+        const cb = this.rebindListener;
+        this.rebindListener = null;
+        cb(e.code);
+        return;
+      }
+
       const act = this.keyMap[e.code];
       if (act) {
         if (['Space', 'ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight'].includes(e.code)) {
@@ -55,11 +100,73 @@ class InputManager {
     });
 
     window.addEventListener('keyup', (e) => {
+      if (this.rebindListener) return;
       const act = this.keyMap[e.code];
       if (act) {
         this.down[act] = false;
       }
     });
+  }
+
+  loadBindings() {
+    try {
+      const saved = localStorage.getItem('vespera_controls_v1');
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        this.bindings = {};
+        for (const [act, def] of Object.entries(DEFAULT_KEY_BINDINGS)) {
+          this.bindings[act] = {
+            label: def.label,
+            primary: parsed[act]?.primary !== undefined ? parsed[act].primary : def.primary,
+            secondary: parsed[act]?.secondary !== undefined ? parsed[act].secondary : def.secondary
+          };
+        }
+      } else {
+        this.bindings = JSON.parse(JSON.stringify(DEFAULT_KEY_BINDINGS));
+      }
+    } catch (e) {
+      this.bindings = JSON.parse(JSON.stringify(DEFAULT_KEY_BINDINGS));
+    }
+    this.buildKeyMap();
+  }
+
+  saveBindings() {
+    try {
+      localStorage.setItem('vespera_controls_v1', JSON.stringify(this.bindings));
+    } catch (e) {
+      console.error('Could not save controls:', e);
+    }
+  }
+
+  resetBindings() {
+    this.bindings = JSON.parse(JSON.stringify(DEFAULT_KEY_BINDINGS));
+    this.buildKeyMap();
+    try {
+      localStorage.removeItem('vespera_controls_v1');
+    } catch (e) {}
+  }
+
+  setBinding(action, slot, code) {
+    if (!this.bindings[action]) return;
+    this.bindings[action][slot] = code;
+    this.buildKeyMap();
+    this.saveBindings();
+  }
+
+  buildKeyMap() {
+    this.keyMap = {};
+    for (const [action, keys] of Object.entries(this.bindings)) {
+      if (keys.primary) this.keyMap[keys.primary] = action;
+      if (keys.secondary) this.keyMap[keys.secondary] = action;
+    }
+  }
+
+  startRebind(callback) {
+    this.rebindListener = callback;
+  }
+
+  cancelRebind() {
+    this.rebindListener = null;
   }
 
   bindTouchControls(container) {
@@ -149,7 +256,11 @@ export class Game {
     });
     document.getElementById('btn-title-controls').addEventListener('click', () => {
       audio.init();
-      this.openPauseModal('tab-inventory');
+      this.openPauseModal('tab-settings');
+      setTimeout(() => {
+        const el = document.getElementById('controls-binding-list');
+        if (el) el.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+      }, 60);
     });
     document.getElementById('btn-title-settings').addEventListener('click', () => {
       audio.init();
@@ -237,6 +348,17 @@ export class Game {
       document.getElementById('title-screen').classList.remove('hidden');
       this.refreshTitleScreen();
     });
+
+    // Controls Rebinding Reset Button
+    document.getElementById('btn-reset-controls')?.addEventListener('click', () => {
+      this.input.resetBindings();
+      audio.interact();
+      this.renderControlsTab();
+      this.updateInteractionKeyCap();
+      this.showToast('Kontroller Återställda', 'Alla tangenter har återställts till fabriksinställningarna.');
+    });
+
+    this.updateInteractionKeyCap();
 
     // Death & Victory Screen Buttons
     document.getElementById('btn-respawn').addEventListener('click', () => {
@@ -1469,6 +1591,7 @@ export class Game {
     if (tabId === 'tab-quests') this.renderQuestsTab();
     if (tabId === 'tab-map') this.renderer.renderAtlas(this);
     if (tabId === 'tab-inventory') this.renderInventoryTab();
+    if (tabId === 'tab-settings') this.renderControlsTab();
   }
 
   renderQuestsTab() {
@@ -1563,6 +1686,90 @@ export class Game {
         invEl.appendChild(card);
       });
     }
+  }
+
+  updateInteractionKeyCap() {
+    const keyCap = document.querySelector('#interaction-prompt .key-cap');
+    if (keyCap && this.input.bindings?.interact) {
+      const code = this.input.bindings.interact.primary || this.input.bindings.interact.secondary;
+      keyCap.textContent = formatKeyShort(code);
+    }
+  }
+
+  renderControlsTab() {
+    const container = document.getElementById('controls-binding-list');
+    if (!container) return;
+    container.innerHTML = '';
+
+    for (const [action, data] of Object.entries(this.input.bindings)) {
+      const row = document.createElement('div');
+      row.className = 'control-row';
+
+      const label = document.createElement('div');
+      label.className = 'control-label';
+      label.textContent = data.label;
+
+      const keysDiv = document.createElement('div');
+      keysDiv.className = 'control-keys';
+
+      // Primary Key Button
+      const btnPrimary = document.createElement('button');
+      btnPrimary.className = 'key-bind-btn' + (data.primary ? '' : ' empty');
+      btnPrimary.textContent = formatKeyCode(data.primary);
+      btnPrimary.title = `Klicka för att binda primär tangent för ${data.label}`;
+      btnPrimary.addEventListener('click', (e) => {
+        e.stopPropagation();
+        this.startRebindingKey(action, 'primary', btnPrimary);
+      });
+
+      // Secondary Key Button
+      const btnSecondary = document.createElement('button');
+      btnSecondary.className = 'key-bind-btn' + (data.secondary ? '' : ' empty');
+      btnSecondary.textContent = formatKeyCode(data.secondary);
+      btnSecondary.title = `Klicka för att binda sekundär tangent för ${data.label}`;
+      btnSecondary.addEventListener('click', (e) => {
+        e.stopPropagation();
+        this.startRebindingKey(action, 'secondary', btnSecondary);
+      });
+
+      keysDiv.appendChild(btnPrimary);
+      keysDiv.appendChild(btnSecondary);
+
+      row.appendChild(label);
+      row.appendChild(keysDiv);
+      container.appendChild(row);
+    }
+  }
+
+  startRebindingKey(action, slot, buttonEl) {
+    if (this.activeRebindBtn && this.activeRebindBtn !== buttonEl) {
+      this.input.cancelRebind();
+      this.renderControlsTab();
+    }
+
+    this.activeRebindBtn = buttonEl;
+    buttonEl.classList.add('listening');
+    buttonEl.textContent = 'Tryck tangent...';
+
+    this.input.startRebind((code) => {
+      buttonEl.classList.remove('listening');
+      this.activeRebindBtn = null;
+
+      // Cancel if user pressed Escape and is not rebinding 'pause'
+      if (code === 'Escape' && action !== 'pause') {
+        this.renderControlsTab();
+        return;
+      }
+
+      this.input.setBinding(action, slot, code);
+      audio.interact();
+      this.renderControlsTab();
+      this.updateInteractionKeyCap();
+      this.showToast(
+        'Kontroll Uppdaterad',
+        `${this.input.bindings[action].label} är nu bunden till [${formatKeyCode(code)}].`
+      );
+    });
   }
 
   showToast(title, body) {

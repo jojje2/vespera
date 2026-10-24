@@ -986,6 +986,120 @@ html, body {
   color: var(--accent-emerald);
 }
 
+/* Controls Configuration Card & Keybinding Grid */
+.controls-card {
+  grid-column: 1 / -1;
+  background: rgba(14, 18, 30, 0.95);
+  border: 1px solid rgba(212, 184, 134, 0.4);
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.4);
+}
+
+.controls-card-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  margin-bottom: 14px;
+  gap: 16px;
+  flex-wrap: wrap;
+  border-bottom: 1px solid rgba(212, 184, 134, 0.2);
+  padding-bottom: 12px;
+}
+
+.controls-card-header h3 {
+  margin-bottom: 4px;
+}
+
+.controls-card-header .small-note {
+  margin-bottom: 0;
+}
+
+.controls-binding-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+  gap: 10px;
+  max-height: 290px;
+  overflow-y: auto;
+  padding-right: 6px;
+}
+
+.controls-binding-grid::-webkit-scrollbar {
+  width: 6px;
+}
+
+.controls-binding-grid::-webkit-scrollbar-thumb {
+  background: rgba(212, 184, 134, 0.35);
+  border-radius: 4px;
+}
+
+.control-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  background: rgba(18, 24, 38, 0.75);
+  border: 1px solid rgba(212, 184, 134, 0.22);
+  border-radius: 6px;
+  padding: 8px 12px;
+  transition: border-color 0.2s, background 0.2s;
+}
+
+.control-row:hover {
+  background: rgba(26, 35, 54, 0.9);
+  border-color: rgba(212, 184, 134, 0.55);
+}
+
+.control-label {
+  font-size: 13.5px;
+  font-weight: 500;
+  color: #e5ded0;
+}
+
+.control-keys {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.key-bind-btn {
+  background: #111724;
+  border: 1px solid var(--border-gold);
+  color: var(--border-bright);
+  font-family: inherit;
+  font-size: 12px;
+  font-weight: 600;
+  padding: 5px 10px;
+  border-radius: 5px;
+  cursor: pointer;
+  min-width: 72px;
+  text-align: center;
+  transition: all 0.18s ease;
+  user-select: none;
+}
+
+.key-bind-btn:hover {
+  background: #1d283c;
+  border-color: #ffd86b;
+  color: #ffffff;
+  box-shadow: 0 0 10px rgba(255, 216, 107, 0.35);
+}
+
+.key-bind-btn.empty {
+  color: rgba(212, 184, 134, 0.4);
+  border-style: dashed;
+}
+
+.key-bind-btn.listening {
+  background: #2b2110;
+  border-color: #ffb833;
+  color: #ffe680;
+  animation: keyPulse 0.9s infinite alternate;
+  box-shadow: 0 0 14px rgba(255, 184, 51, 0.6);
+}
+
+@keyframes keyPulse {
+  0% { transform: scale(1); border-color: #ffb833; }
+  100% { transform: scale(1.05); border-color: #ffe885; }
+}
+
 /* Dialogue Modal */
 .dialogue-overlay {
   position: absolute;
