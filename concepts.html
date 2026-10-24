@@ -1,0 +1,262 @@
+<!DOCTYPE html>
+<html lang="sv">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>VESPERA — Karaktärs- och Väsengalleri (Välj Stil)</title>
+  <style>
+    :root {
+      --bg: #07090f;
+      --card-bg: rgba(18, 22, 34, 0.92);
+      --border-gold: #c5a059;
+      --accent-cyan: #5ce1e6;
+      --accent-amber: #f3a847;
+      --text: #e8e3d9;
+      --text-muted: #a19a8d;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      background: radial-gradient(circle at center top, #111624 0%, #05060a 100%);
+      color: var(--text);
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      padding: 30px 20px 80px;
+      line-height: 1.6;
+    }
+    .container {
+      max-width: 1200px;
+      margin: 0 auto;
+    }
+    header {
+      text-align: center;
+      margin-bottom: 40px;
+    }
+    .emblem {
+      color: var(--accent-cyan);
+      font-size: 32px;
+      margin-bottom: 8px;
+    }
+    h1 {
+      font-family: Georgia, serif;
+      font-size: 36px;
+      letter-spacing: 4px;
+      color: var(--border-gold);
+      text-transform: uppercase;
+      margin-bottom: 8px;
+    }
+    .subtitle {
+      font-size: 16px;
+      color: var(--text-muted);
+      max-width: 700px;
+      margin: 0 auto 20px;
+    }
+    .back-link {
+      display: inline-block;
+      color: var(--accent-cyan);
+      text-decoration: none;
+      font-weight: bold;
+      border: 1px solid rgba(92, 225, 230, 0.4);
+      padding: 8px 18px;
+      border-radius: 20px;
+      transition: all 0.2s;
+    }
+    .back-link:hover {
+      background: rgba(92, 225, 230, 0.15);
+      border-color: var(--accent-cyan);
+    }
+    .grid {
+      display: flex;
+      flex-direction: column;
+      gap: 50px;
+    }
+    .option-card {
+      background: var(--card-bg);
+      border: 2px solid rgba(197, 160, 89, 0.35);
+      border-radius: 12px;
+      overflow: hidden;
+      box-shadow: 0 10px 35px rgba(0, 0, 0, 0.75);
+      transition: border-color 0.25s ease, transform 0.25s ease;
+    }
+    .option-card:hover {
+      border-color: var(--border-gold);
+      transform: translateY(-2px);
+    }
+    .card-header {
+      padding: 22px 28px 16px;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: 12px;
+    }
+    .card-header h2 {
+      font-family: Georgia, serif;
+      font-size: 24px;
+      color: var(--border-gold);
+    }
+    .badge {
+      background: rgba(243, 168, 71, 0.18);
+      color: var(--accent-amber);
+      font-size: 13px;
+      font-weight: bold;
+      padding: 4px 12px;
+      border-radius: 12px;
+      border: 1px solid rgba(243, 168, 71, 0.4);
+    }
+    .img-wrap {
+      width: 100%;
+      background: #030408;
+      text-align: center;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+    }
+    .img-wrap img {
+      width: 100%;
+      max-height: 650px;
+      object-fit: contain;
+      display: block;
+      margin: 0 auto;
+    }
+    .card-body {
+      padding: 24px 28px;
+    }
+    .lineup-list {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+      gap: 16px;
+      margin-top: 16px;
+    }
+    .lineup-item {
+      background: rgba(8, 11, 18, 0.65);
+      border-left: 3px solid var(--accent-cyan);
+      padding: 10px 14px;
+      border-radius: 4px;
+      font-size: 13.5px;
+    }
+    .lineup-item strong {
+      display: block;
+      color: #fff;
+      margin-bottom: 3px;
+      font-size: 14px;
+    }
+    .theme-summary {
+      font-size: 15px;
+      color: var(--text);
+      line-height: 1.65;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <header>
+      <div class="emblem">❖</div>
+      <h1>Vespera: Karaktärs- och Väsengalleri</h1>
+      <p class="subtitle">Granska de tre visuella koncepten för Kaelen, Liora, invånarna och underjordens fiender. Välj vilken stil du föredrar att vi bygger spelets grafik kring.</p>
+      <a href="index.html" class="back-link">← Tillbaka till Spelet</a>
+    </header>
+
+    <div class="grid">
+      <!-- OPTION 1 -->
+      <article class="option-card" id="stil1">
+        <div class="card-header">
+          <h2>Alternativ 1: Moth-Knight &amp; Silk-Weaver</h2>
+          <span class="badge">Insekts- &amp; Silkesfantasi</span>
+        </div>
+        <div class="img-wrap">
+          <img src="assets/concepts/style1_moth_knight.jpg" alt="Moth-Knight and Silk Weaver Lineup" />
+        </div>
+        <div class="card-body">
+          <p class="theme-summary">
+            <strong>Känsla &amp; Estetik:</strong> Elegant, poetisk insektsfantasy inspirerad av <em>Hollow Knight</em>, <em>Silksong</em> och Studio Ghibli. Karaktärerna bär skira sidentyger, porslinsmasker och fjäderformade antenner.
+          </p>
+          <div class="lineup-list">
+            <div class="lineup-item">
+              <strong>Huvudpersonen Kaelen</strong>
+              Porslinsmask som en nattfjäril, fjäderantenner, böljande gossamer-mantel, kristallint stämgaffelsvärd och bärnstenslykta.
+            </div>
+            <div class="lineup-item">
+              <strong>Systern Liora</strong>
+              Sidenvävare i skira skimrande slöjor med resonant sångkristall.
+            </div>
+            <div class="lineup-item">
+              <strong>Invånare (NPC:er)</strong>
+              Silkeskrönikörer, äldre nattfjärilsfolk och bönsyrsemunkar med svärdsklingor.
+            </div>
+            <div class="lineup-item">
+              <strong>Väsen &amp; Fiender</strong>
+              Skalbaggar med svampbepansring, svävande sporfjärilar och rovdjursinsekter.
+            </div>
+          </div>
+        </div>
+      </article>
+
+      <!-- OPTION 2 -->
+      <article class="option-card" id="stil2">
+        <div class="card-header">
+          <h2>Alternativ 2: Celestial Clockwork &amp; Porcelain Doll</h2>
+          <span class="badge">Urverk &amp; Stjärnmekanik</span>
+        </div>
+        <div class="img-wrap">
+          <img src="assets/concepts/style2_celestial_clockwork.jpg" alt="Celestial Clockwork Lineup" />
+        </div>
+        <div class="card-body">
+          <p class="theme-summary">
+            <strong>Känsla &amp; Estetik:</strong> Barock stjärnmekanik och astrologisk fantasy. Karaktärerna är intrikata porslinsautomater med synliga mässingskugghjul, glödande nebulosakärnor och astrolabium-detaljer.
+          </p>
+          <div class="lineup-list">
+            <div class="lineup-item">
+              <strong>Huvudpersonen Kaelen</strong>
+              Porslinsdocka/automaton med mässingsleder, stjärnjärnsvärja och ett glashölje i bröstkorgen med en glödande miniatyrnebulosa som lykta.
+            </div>
+            <div class="lineup-item">
+              <strong>Systern Liora</strong>
+              Glasvävare i stjärnbildsdräkt med svävande, kretsande prismor.
+            </div>
+            <div class="lineup-item">
+              <strong>Invånare (NPC:er)</strong>
+              Astrolabium-lärda med rörliga mässingssfärer och porslinsmaskerade körpräster med klockspel.
+            </div>
+            <div class="lineup-item">
+              <strong>Väsen &amp; Fiender</strong>
+              Pendel-automater med glödande ugnskärnor och urverksgolems.
+            </div>
+          </div>
+        </div>
+      </article>
+
+      <!-- OPTION 3 -->
+      <article class="option-card" id="stil3">
+        <div class="card-header">
+          <h2>Alternativ 3: Verdant Spirit &amp; Bramble-Folk</h2>
+          <span class="badge">Mossandar &amp; Folktro</span>
+        </div>
+        <div class="img-wrap">
+          <img src="assets/concepts/style3_verdant_spirit.jpg" alt="Verdant Spirit Lineup" />
+        </div>
+        <div class="card-body">
+          <p class="theme-summary">
+            <strong>Känsla &amp; Estetik:</strong> Mörk organisk folktro inspirerad av <em>Princess Mononoke</em> och <em>Ori</em>. Karaktärerna är sammanflätade med naturen – trähorn, mossa, björkbark och levande irrbloss.
+          </p>
+          <div class="lineup-list">
+            <div class="lineup-item">
+              <strong>Huvudpersonen Kaelen</strong>
+              En liten skuggande med trähorn (antlers), mantel av mossa och björkbark, lysande blå ögon och en flätad lykta med ett svävande irrbloss.
+            </div>
+            <div class="lineup-item">
+              <strong>Systern Liora</strong>
+              Nattblommevävare med krans av nattvioler och eko-kristall.
+            </div>
+            <div class="lineup-item">
+              <strong>Invånare (NPC:er)</strong>
+              Svamperemiter med knotiga trästavar och törndryader med blommande rankor.
+            </div>
+            <div class="lineup-item">
+              <strong>Väsen &amp; Fiender</strong>
+              Jättelika rothornade golems med glödande kärnor och bärnstensbestar.
+            </div>
+          </div>
+        </div>
+      </article>
+    </div>
+  </div>
+</body>
+</html>
