@@ -39,13 +39,16 @@ export class Player {
     this.invulnTimer = 0;
     this.hurtTimer = 0;
 
-    // Animation
+    // Animation & Feel
     this.animTime = 0;
     this.walkCycle = 0;
+    this.stepDustTimer = 0;
+    this.dashGhostTimer = 0;
     this.scaleX = 1.0;
     this.scaleY = 1.0;
     this.healAnimTimer = 0;
     this.capeHistory = [];
+    this.slashTrails = [];
   }
 
   resetAt(x, y) {
@@ -149,8 +152,8 @@ export class Player {
     ) {
       this.dashTimer = 0.17;
       this.dashCooldown = hasSwift ? 0.38 : 0.50;
-      this.scaleX = 1.35;
-      this.scaleY = 0.72;
+      this.scaleX = 1.38;
+      this.scaleY = 0.70;
       if (!this.onGround) this.canAirDash = false;
       if (game.hasAbility('thornWard')) {
         this.invulnTimer = Math.max(this.invulnTimer, 0.22);
@@ -158,7 +161,7 @@ export class Player {
       this.vx = this.facing * 640;
       this.vy = 0;
       audio.dash();
-      game.spawnParticles(this.x + this.w / 2, this.y + this.h / 2, '#8df6fa', 12, 95);
+      game.spawnParticles(this.x + this.w / 2, this.y + this.h / 2, '#8df6fa', 14, 110);
     }
 
     // Active Dash
@@ -166,36 +169,50 @@ export class Player {
       this.dashTimer -= dt;
       this.vx = this.facing * 640;
       this.vy = 0;
-      if (Math.random() < 0.7) {
+      this.dashGhostTimer -= dt;
+      if (this.dashGhostTimer <= 0) {
+        this.dashGhostTimer = 0.035;
         game.spawnParticles(
-          this.x + this.w / 2,
-          this.y + this.h / 2,
+          this.x + this.w / 2 - this.facing * 10,
+          this.y + this.h / 2 + (Math.random() - 0.5) * 14,
           game.hasAbility('thornWard') ? '#b174f2' : '#5ce1e6',
-          2,
-          40
+          3,
+          50
         );
       }
     } else {
-      // Horizontal movement
+      // Horizontal movement with smooth easing acceleration / deceleration
       let moveDir = 0;
       if (input.isDown('left')) moveDir -= 1;
       if (input.isDown('right')) moveDir += 1;
 
       if (this.wallJumpLock <= 0) {
+        const targetVx = moveDir * maxSpeed;
         if (moveDir !== 0) {
           this.facing = moveDir;
-          const accel = this.onGround ? (this.onSlippery ? 900 : 2400) : 1650;
-          this.vx += moveDir * accel * dt;
-          if (Math.abs(this.vx) > maxSpeed) {
-            this.vx = moveDir * maxSpeed;
+          // Smooth acceleration easing towards target speed
+          const accelLerp = this.onGround ? (this.onSlippery ? 6.5 : 18.0) : 11.0;
+          this.vx += (targetVx - this.vx) * Math.min(1, dt * accelLerp);
+
+          // Running footstep dust particles
+          if (this.onGround && Math.abs(this.vx) > 40) {
+            this.stepDustTimer -= dt;
+            if (this.stepDustTimer <= 0) {
+              this.stepDustTimer = 0.16;
+              game.spawnParticles(
+                this.x + this.w / 2 - this.facing * 8,
+                this.y + this.h - 2,
+                '#9e9587',
+                2,
+                30
+              );
+            }
           }
         } else {
-          const friction = this.onGround ? (this.onSlippery ? 420 : 2200) : 1100;
-          if (Math.abs(this.vx) <= friction * dt) {
-            this.vx = 0;
-          } else {
-            this.vx -= Math.sign(this.vx) * friction * dt;
-          }
+          // Smooth deceleration easing towards stop
+          const decelLerp = this.onGround ? (this.onSlippery ? 3.5 : 19.5) : 8.5;
+          this.vx += (0 - this.vx) * Math.min(1, dt * decelLerp);
+          if (Math.abs(this.vx) < 5) this.vx = 0;
         }
       }
 
@@ -209,7 +226,10 @@ export class Player {
         ((this.wallSide === -1 && input.isDown('left')) || (this.wallSide === 1 && input.isDown('right')))
       ) {
         this.vy = Math.min(this.vy, 130);
-        if (Math.random() < 0.35) {
+        // Wall slide squash
+        this.scaleX = 0.85;
+        this.scaleY = 1.15;
+        if (Math.random() < 0.4) {
           game.spawnParticles(
             this.wallSide === -1 ? this.x : this.x + this.w,
             this.y + 20,
@@ -232,19 +252,19 @@ export class Player {
       if (this.coyoteTimer > 0) {
         // Normal or Coyote Jump
         this.vy = -565;
-        this.scaleY = 1.25;
-        this.scaleX = 0.8;
+        this.scaleY = 1.30;
+        this.scaleX = 0.76;
         this.onGround = false;
         this.coyoteTimer = 0;
         this.jumpBuffer = 0;
         this.dashTimer = 0;
         audio.jump();
-        game.spawnParticles(this.x + this.w / 2, this.y + this.h, '#d4b886', 7, 65);
+        game.spawnParticles(this.x + this.w / 2, this.y + this.h, '#d4b886', 8, 75);
       } else if (this.wallSide !== 0 && game.hasAbility('wallJump')) {
         // Wall Jump
         this.vy = -540;
-        this.scaleY = 1.28;
-        this.scaleX = 0.78;
+        this.scaleY = 1.32;
+        this.scaleX = 0.74;
         this.vx = -this.wallSide * 320;
         this.facing = -this.wallSide;
         this.wallJumpLock = 0.15;
@@ -255,18 +275,18 @@ export class Player {
           this.wallSide === -1 ? this.x : this.x + this.w,
           this.y + this.h / 2,
           '#8df6fa',
-          10,
-          90
+          12,
+          95
         );
       } else if (this.canDoubleJump && game.hasAbility('doubleJump')) {
         // Double Jump (Zephyr Plume)
         this.vy = -535;
-        this.scaleY = 1.32;
-        this.scaleX = 0.76;
+        this.scaleY = 1.36;
+        this.scaleX = 0.72;
         this.canDoubleJump = false;
         this.jumpBuffer = 0;
         audio.doubleJump();
-        game.spawnParticles(this.x + this.w / 2, this.y + this.h, '#d27eff', 14, 110);
+        game.spawnParticles(this.x + this.w / 2, this.y + this.h, '#d27eff', 16, 120);
       }
     }
 
@@ -301,14 +321,37 @@ export class Player {
       this.heavyCooldown = 0.65;
       audio.heavySlash();
       this.hitTargetsThisSwing = new Set();
-      game.addScreenShake(5, 0.18);
+      game.addScreenShake(6, 0.22);
       game.spawnParticles(
         this.facing > 0 ? this.x + this.w + 25 : this.x - 25,
         this.y + 20,
         '#d27eff',
-        16,
-        130
+        18,
+        140
       );
+    }
+
+    // Update Slash Trails
+    for (let i = this.slashTrails.length - 1; i >= 0; i--) {
+      this.slashTrails[i].life -= dt;
+      if (this.slashTrails[i].life <= 0) {
+        this.slashTrails.splice(i, 1);
+      }
+    }
+    if (this.attackTimer > 0 || this.heavyTimer > 0) {
+      const isHeavy = this.heavyTimer > 0;
+      const prog = isHeavy ? 1 - this.heavyTimer / 0.26 : 1 - this.attackTimer / 0.15;
+      this.slashTrails.push({
+        x: this.x + this.w / 2,
+        y: this.y + this.h / 2,
+        facing: this.facing,
+        dir: this.attackDir,
+        prog,
+        isHeavy,
+        life: 0.10,
+        maxLife: 0.10,
+        tempered: !!game.state.worldFlags.bladeTempered
+      });
     }
 
     if (this.attackTimer > 0) this.attackTimer -= dt;
@@ -328,6 +371,9 @@ export class Player {
           this.x = p.x + p.w;
           this.wallSide = -1;
         }
+        // Wall bump squash
+        this.scaleX = 0.84;
+        this.scaleY = 1.16;
         this.vx = 0;
       }
     }
@@ -345,6 +391,7 @@ export class Player {
 
     // Move & Collide Y
     const prevBottom = this.y + this.h;
+    const preVy = this.vy;
     this.y += this.vy * dt;
     this.onGround = false;
     this.onSlippery = false;
@@ -361,14 +408,22 @@ export class Player {
           this.y = p.y - this.h;
           this.vy = 0;
           this.onGround = true;
+          if (preVy > 120) {
+            const impactScale = Math.min(0.36, preVy / 1100);
+            this.scaleY = 1.0 - impactScale;
+            this.scaleX = 1.0 + impactScale;
+            game.spawnParticles(this.x + this.w / 2, this.y + this.h, '#c4bcae', Math.min(8, Math.floor(preVy / 90)), 55);
+          }
         }
         continue;
       }
       if (rectOverlap(this, p)) {
         if (this.vy >= 0) {
-          if (this.vy > 140) {
-            this.scaleY = 0.78;
-            this.scaleX = 1.22;
+          if (preVy > 120) {
+            const impactScale = Math.min(0.38, preVy / 1100);
+            this.scaleY = 1.0 - impactScale;
+            this.scaleX = 1.0 + impactScale;
+            game.spawnParticles(this.x + this.w / 2, this.y + this.h, '#c4bcae', Math.min(10, Math.floor(preVy / 80)), 65);
           }
           this.y = p.y - this.h;
           this.vy = 0;

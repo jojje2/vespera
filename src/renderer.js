@@ -1978,30 +1978,61 @@ export class Renderer {
     ctx.arc(px + eyeOffset + 3, p.y + 10, 2.2, 0, Math.PI * 2);
     ctx.fill();
 
-    // 8. Thorn-Glaive Blade & Emerald Slash Arc
-    const atk = p.getAttackBox();
-    if (atk) {
-      ctx.strokeStyle = atk.isHeavy
-        ? '#56d38a'
-        : game.state.worldFlags.bladeTempered
-        ? '#ffbe55'
-        : '#5ce1e6';
-      ctx.lineWidth = atk.isHeavy ? 9 : 5.5;
-      ctx.beginPath();
-      ctx.arc(
-        atk.x + atk.w / 2,
-        atk.y + atk.h / 2,
-        Math.max(atk.w, atk.h) * 0.48,
-        0,
-        Math.PI * 1.45
-      );
-      ctx.stroke();
+    // 8. Thorn-Glaive Blade & Sweeping Crescent Slash Trails
+    if (p.slashTrails && p.slashTrails.length > 0) {
+      for (const tr of p.slashTrails) {
+        const trailAlpha = Math.max(0, tr.life / tr.maxLife);
+        ctx.save();
+        const bladeColor = tr.isHeavy
+          ? '#b174f2'
+          : tr.tempered
+          ? '#ffbe55'
+          : '#5ce1e6';
+        const trailRadius = tr.isHeavy ? 54 : 42;
 
-      // Trailing thorn spark
-      ctx.fillStyle = '#ffffff';
-      ctx.beginPath();
-      ctx.arc(atk.x + atk.w * 0.8, atk.y + atk.h * 0.2, 3, 0, Math.PI * 2);
-      ctx.fill();
+        ctx.translate(tr.x, tr.y);
+        ctx.scale(tr.facing, 1);
+
+        // Directional Crescent Arc Sweep
+        let startAngle = -0.9 * Math.PI;
+        let endAngle = 0.35 * Math.PI;
+        if (tr.dir === 'up') {
+          startAngle = -1.25 * Math.PI;
+          endAngle = -0.15 * Math.PI;
+        } else if (tr.dir === 'down') {
+          startAngle = 0.15 * Math.PI;
+          endAngle = 1.15 * Math.PI;
+        }
+
+        // Outer Ethereal Glow Arc
+        ctx.strokeStyle = bladeColor;
+        ctx.globalAlpha = trailAlpha * 0.75;
+        ctx.lineWidth = tr.isHeavy ? 10 : 7;
+        ctx.beginPath();
+        ctx.arc(0, 0, trailRadius, startAngle, endAngle);
+        ctx.stroke();
+
+        // Inner Sharp Blade Core
+        ctx.strokeStyle = '#ffffff';
+        ctx.globalAlpha = trailAlpha * 0.95;
+        ctx.lineWidth = tr.isHeavy ? 4.5 : 3;
+        ctx.beginPath();
+        ctx.arc(0, 0, trailRadius, startAngle, endAngle);
+        ctx.stroke();
+
+        // Gleaming Thorn Spark at Blade Tip
+        const tipX = Math.cos(endAngle) * trailRadius;
+        const tipY = Math.sin(endAngle) * trailRadius;
+        ctx.fillStyle = '#ffffff';
+        ctx.shadowColor = bladeColor;
+        ctx.shadowBlur = 8;
+        ctx.beginPath();
+        ctx.arc(tipX, tipY, 3.2, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.shadowBlur = 0;
+
+        ctx.restore();
+      }
     }
 
     ctx.restore();
@@ -2062,18 +2093,27 @@ export class Renderer {
       lctx.fill();
     };
 
-    // Player Soul-Lantern light pool
+    // Player Soul-Lantern light pool with organic double-sinus flicker
     const lanternScale = game.state.worldFlags.lanternUpgraded ? 1.45 : 1.0;
-    const flicker = Math.sin(time * 9) * 7;
+    const flicker = Math.sin(time * 8.5) * 6 + Math.cos(time * 14) * 3.5;
     punchLight(
       game.player.x + game.player.w / 2,
       game.player.y + game.player.h / 2,
-      (265 + flicker) * lanternScale
+      (270 + flicker) * lanternScale
     );
 
     // Brazier light
     if (room.brazier) {
-      punchLight(room.brazier.x, room.brazier.y - 35, 235 + flicker);
+      punchLight(room.brazier.x, room.brazier.y - 35, 240 + flicker * 0.8);
+    }
+
+    // Collectible items & Lumen Shards punch soft ambient glows
+    if (room.items) {
+      for (const it of room.items) {
+        if (!game.isItemCollected(room.id, it)) {
+          punchLight(it.x, it.y, 85);
+        }
+      }
     }
 
     // Room props light sources
@@ -2094,7 +2134,28 @@ export class Renderer {
       }
     }
 
+    // Draw darkness & lighting mask onto main canvas
     ctx.drawImage(this.lightCanvas, 0, 0);
+
+    // Cinematic Vignette Overlay around viewport corners
+    ctx.save();
+    const vGrad = ctx.createRadialGradient(W / 2, H / 2, W * 0.35, W / 2, H / 2, W * 0.75);
+    vGrad.addColorStop(0, 'rgba(0, 0, 0, 0)');
+    vGrad.addColorStop(0.65, 'rgba(2, 4, 8, 0.32)');
+    vGrad.addColorStop(1, 'rgba(1, 2, 5, 0.75)');
+    ctx.fillStyle = vGrad;
+    ctx.fillRect(0, 0, W, H);
+
+    // Red Damage Border Vignette Flash
+    if (game.player && game.player.hurtTimer > 0) {
+      const hurtAlpha = Math.min(0.42, (game.player.hurtTimer / 0.32) * 0.42);
+      const hGrad = ctx.createRadialGradient(W / 2, H / 2, W * 0.25, W / 2, H / 2, W * 0.68);
+      hGrad.addColorStop(0, 'rgba(224, 83, 104, 0)');
+      hGrad.addColorStop(1, `rgba(224, 83, 104, ${hurtAlpha})`);
+      ctx.fillStyle = hGrad;
+      ctx.fillRect(0, 0, W, H);
+    }
+    ctx.restore();
   }
 
   renderMinimap(game) {

@@ -2481,13 +2481,16 @@ class Player {
     this.invulnTimer = 0;
     this.hurtTimer = 0;
 
-    // Animation
+    // Animation & Feel
     this.animTime = 0;
     this.walkCycle = 0;
+    this.stepDustTimer = 0;
+    this.dashGhostTimer = 0;
     this.scaleX = 1.0;
     this.scaleY = 1.0;
     this.healAnimTimer = 0;
     this.capeHistory = [];
+    this.slashTrails = [];
   }
 
   resetAt(x, y) {
@@ -2591,8 +2594,8 @@ class Player {
     ) {
       this.dashTimer = 0.17;
       this.dashCooldown = hasSwift ? 0.38 : 0.50;
-      this.scaleX = 1.35;
-      this.scaleY = 0.72;
+      this.scaleX = 1.38;
+      this.scaleY = 0.70;
       if (!this.onGround) this.canAirDash = false;
       if (game.hasAbility('thornWard')) {
         this.invulnTimer = Math.max(this.invulnTimer, 0.22);
@@ -2600,7 +2603,7 @@ class Player {
       this.vx = this.facing * 640;
       this.vy = 0;
       audio.dash();
-      game.spawnParticles(this.x + this.w / 2, this.y + this.h / 2, '#8df6fa', 12, 95);
+      game.spawnParticles(this.x + this.w / 2, this.y + this.h / 2, '#8df6fa', 14, 110);
     }
 
     // Active Dash
@@ -2608,36 +2611,50 @@ class Player {
       this.dashTimer -= dt;
       this.vx = this.facing * 640;
       this.vy = 0;
-      if (Math.random() < 0.7) {
+      this.dashGhostTimer -= dt;
+      if (this.dashGhostTimer <= 0) {
+        this.dashGhostTimer = 0.035;
         game.spawnParticles(
-          this.x + this.w / 2,
-          this.y + this.h / 2,
+          this.x + this.w / 2 - this.facing * 10,
+          this.y + this.h / 2 + (Math.random() - 0.5) * 14,
           game.hasAbility('thornWard') ? '#b174f2' : '#5ce1e6',
-          2,
-          40
+          3,
+          50
         );
       }
     } else {
-      // Horizontal movement
+      // Horizontal movement with smooth easing acceleration / deceleration
       let moveDir = 0;
       if (input.isDown('left')) moveDir -= 1;
       if (input.isDown('right')) moveDir += 1;
 
       if (this.wallJumpLock <= 0) {
+        const targetVx = moveDir * maxSpeed;
         if (moveDir !== 0) {
           this.facing = moveDir;
-          const accel = this.onGround ? (this.onSlippery ? 900 : 2400) : 1650;
-          this.vx += moveDir * accel * dt;
-          if (Math.abs(this.vx) > maxSpeed) {
-            this.vx = moveDir * maxSpeed;
+          // Smooth acceleration easing towards target speed
+          const accelLerp = this.onGround ? (this.onSlippery ? 6.5 : 18.0) : 11.0;
+          this.vx += (targetVx - this.vx) * Math.min(1, dt * accelLerp);
+
+          // Running footstep dust particles
+          if (this.onGround && Math.abs(this.vx) > 40) {
+            this.stepDustTimer -= dt;
+            if (this.stepDustTimer <= 0) {
+              this.stepDustTimer = 0.16;
+              game.spawnParticles(
+                this.x + this.w / 2 - this.facing * 8,
+                this.y + this.h - 2,
+                '#9e9587',
+                2,
+                30
+              );
+            }
           }
         } else {
-          const friction = this.onGround ? (this.onSlippery ? 420 : 2200) : 1100;
-          if (Math.abs(this.vx) <= friction * dt) {
-            this.vx = 0;
-          } else {
-            this.vx -= Math.sign(this.vx) * friction * dt;
-          }
+          // Smooth deceleration easing towards stop
+          const decelLerp = this.onGround ? (this.onSlippery ? 3.5 : 19.5) : 8.5;
+          this.vx += (0 - this.vx) * Math.min(1, dt * decelLerp);
+          if (Math.abs(this.vx) < 5) this.vx = 0;
         }
       }
 
@@ -2651,7 +2668,10 @@ class Player {
         ((this.wallSide === -1 && input.isDown('left')) || (this.wallSide === 1 && input.isDown('right')))
       ) {
         this.vy = Math.min(this.vy, 130);
-        if (Math.random() < 0.35) {
+        // Wall slide squash
+        this.scaleX = 0.85;
+        this.scaleY = 1.15;
+        if (Math.random() < 0.4) {
           game.spawnParticles(
             this.wallSide === -1 ? this.x : this.x + this.w,
             this.y + 20,
@@ -2674,19 +2694,19 @@ class Player {
       if (this.coyoteTimer > 0) {
         // Normal or Coyote Jump
         this.vy = -565;
-        this.scaleY = 1.25;
-        this.scaleX = 0.8;
+        this.scaleY = 1.30;
+        this.scaleX = 0.76;
         this.onGround = false;
         this.coyoteTimer = 0;
         this.jumpBuffer = 0;
         this.dashTimer = 0;
         audio.jump();
-        game.spawnParticles(this.x + this.w / 2, this.y + this.h, '#d4b886', 7, 65);
+        game.spawnParticles(this.x + this.w / 2, this.y + this.h, '#d4b886', 8, 75);
       } else if (this.wallSide !== 0 && game.hasAbility('wallJump')) {
         // Wall Jump
         this.vy = -540;
-        this.scaleY = 1.28;
-        this.scaleX = 0.78;
+        this.scaleY = 1.32;
+        this.scaleX = 0.74;
         this.vx = -this.wallSide * 320;
         this.facing = -this.wallSide;
         this.wallJumpLock = 0.15;
@@ -2697,18 +2717,18 @@ class Player {
           this.wallSide === -1 ? this.x : this.x + this.w,
           this.y + this.h / 2,
           '#8df6fa',
-          10,
-          90
+          12,
+          95
         );
       } else if (this.canDoubleJump && game.hasAbility('doubleJump')) {
         // Double Jump (Zephyr Plume)
         this.vy = -535;
-        this.scaleY = 1.32;
-        this.scaleX = 0.76;
+        this.scaleY = 1.36;
+        this.scaleX = 0.72;
         this.canDoubleJump = false;
         this.jumpBuffer = 0;
         audio.doubleJump();
-        game.spawnParticles(this.x + this.w / 2, this.y + this.h, '#d27eff', 14, 110);
+        game.spawnParticles(this.x + this.w / 2, this.y + this.h, '#d27eff', 16, 120);
       }
     }
 
@@ -2743,14 +2763,37 @@ class Player {
       this.heavyCooldown = 0.65;
       audio.heavySlash();
       this.hitTargetsThisSwing = new Set();
-      game.addScreenShake(5, 0.18);
+      game.addScreenShake(6, 0.22);
       game.spawnParticles(
         this.facing > 0 ? this.x + this.w + 25 : this.x - 25,
         this.y + 20,
         '#d27eff',
-        16,
-        130
+        18,
+        140
       );
+    }
+
+    // Update Slash Trails
+    for (let i = this.slashTrails.length - 1; i >= 0; i--) {
+      this.slashTrails[i].life -= dt;
+      if (this.slashTrails[i].life <= 0) {
+        this.slashTrails.splice(i, 1);
+      }
+    }
+    if (this.attackTimer > 0 || this.heavyTimer > 0) {
+      const isHeavy = this.heavyTimer > 0;
+      const prog = isHeavy ? 1 - this.heavyTimer / 0.26 : 1 - this.attackTimer / 0.15;
+      this.slashTrails.push({
+        x: this.x + this.w / 2,
+        y: this.y + this.h / 2,
+        facing: this.facing,
+        dir: this.attackDir,
+        prog,
+        isHeavy,
+        life: 0.10,
+        maxLife: 0.10,
+        tempered: !!game.state.worldFlags.bladeTempered
+      });
     }
 
     if (this.attackTimer > 0) this.attackTimer -= dt;
@@ -2770,6 +2813,9 @@ class Player {
           this.x = p.x + p.w;
           this.wallSide = -1;
         }
+        // Wall bump squash
+        this.scaleX = 0.84;
+        this.scaleY = 1.16;
         this.vx = 0;
       }
     }
@@ -2787,6 +2833,7 @@ class Player {
 
     // Move & Collide Y
     const prevBottom = this.y + this.h;
+    const preVy = this.vy;
     this.y += this.vy * dt;
     this.onGround = false;
     this.onSlippery = false;
@@ -2803,14 +2850,22 @@ class Player {
           this.y = p.y - this.h;
           this.vy = 0;
           this.onGround = true;
+          if (preVy > 120) {
+            const impactScale = Math.min(0.36, preVy / 1100);
+            this.scaleY = 1.0 - impactScale;
+            this.scaleX = 1.0 + impactScale;
+            game.spawnParticles(this.x + this.w / 2, this.y + this.h, '#c4bcae', Math.min(8, Math.floor(preVy / 90)), 55);
+          }
         }
         continue;
       }
       if (rectOverlap(this, p)) {
         if (this.vy >= 0) {
-          if (this.vy > 140) {
-            this.scaleY = 0.78;
-            this.scaleX = 1.22;
+          if (preVy > 120) {
+            const impactScale = Math.min(0.38, preVy / 1100);
+            this.scaleY = 1.0 - impactScale;
+            this.scaleX = 1.0 + impactScale;
+            game.spawnParticles(this.x + this.w / 2, this.y + this.h, '#c4bcae', Math.min(10, Math.floor(preVy / 80)), 65);
           }
           this.y = p.y - this.h;
           this.vy = 0;
@@ -5089,30 +5144,61 @@ class Renderer {
     ctx.arc(px + eyeOffset + 3, p.y + 10, 2.2, 0, Math.PI * 2);
     ctx.fill();
 
-    // 8. Thorn-Glaive Blade & Emerald Slash Arc
-    const atk = p.getAttackBox();
-    if (atk) {
-      ctx.strokeStyle = atk.isHeavy
-        ? '#56d38a'
-        : game.state.worldFlags.bladeTempered
-        ? '#ffbe55'
-        : '#5ce1e6';
-      ctx.lineWidth = atk.isHeavy ? 9 : 5.5;
-      ctx.beginPath();
-      ctx.arc(
-        atk.x + atk.w / 2,
-        atk.y + atk.h / 2,
-        Math.max(atk.w, atk.h) * 0.48,
-        0,
-        Math.PI * 1.45
-      );
-      ctx.stroke();
+    // 8. Thorn-Glaive Blade & Sweeping Crescent Slash Trails
+    if (p.slashTrails && p.slashTrails.length > 0) {
+      for (const tr of p.slashTrails) {
+        const trailAlpha = Math.max(0, tr.life / tr.maxLife);
+        ctx.save();
+        const bladeColor = tr.isHeavy
+          ? '#b174f2'
+          : tr.tempered
+          ? '#ffbe55'
+          : '#5ce1e6';
+        const trailRadius = tr.isHeavy ? 54 : 42;
 
-      // Trailing thorn spark
-      ctx.fillStyle = '#ffffff';
-      ctx.beginPath();
-      ctx.arc(atk.x + atk.w * 0.8, atk.y + atk.h * 0.2, 3, 0, Math.PI * 2);
-      ctx.fill();
+        ctx.translate(tr.x, tr.y);
+        ctx.scale(tr.facing, 1);
+
+        // Directional Crescent Arc Sweep
+        let startAngle = -0.9 * Math.PI;
+        let endAngle = 0.35 * Math.PI;
+        if (tr.dir === 'up') {
+          startAngle = -1.25 * Math.PI;
+          endAngle = -0.15 * Math.PI;
+        } else if (tr.dir === 'down') {
+          startAngle = 0.15 * Math.PI;
+          endAngle = 1.15 * Math.PI;
+        }
+
+        // Outer Ethereal Glow Arc
+        ctx.strokeStyle = bladeColor;
+        ctx.globalAlpha = trailAlpha * 0.75;
+        ctx.lineWidth = tr.isHeavy ? 10 : 7;
+        ctx.beginPath();
+        ctx.arc(0, 0, trailRadius, startAngle, endAngle);
+        ctx.stroke();
+
+        // Inner Sharp Blade Core
+        ctx.strokeStyle = '#ffffff';
+        ctx.globalAlpha = trailAlpha * 0.95;
+        ctx.lineWidth = tr.isHeavy ? 4.5 : 3;
+        ctx.beginPath();
+        ctx.arc(0, 0, trailRadius, startAngle, endAngle);
+        ctx.stroke();
+
+        // Gleaming Thorn Spark at Blade Tip
+        const tipX = Math.cos(endAngle) * trailRadius;
+        const tipY = Math.sin(endAngle) * trailRadius;
+        ctx.fillStyle = '#ffffff';
+        ctx.shadowColor = bladeColor;
+        ctx.shadowBlur = 8;
+        ctx.beginPath();
+        ctx.arc(tipX, tipY, 3.2, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.shadowBlur = 0;
+
+        ctx.restore();
+      }
     }
 
     ctx.restore();
@@ -5173,18 +5259,27 @@ class Renderer {
       lctx.fill();
     };
 
-    // Player Soul-Lantern light pool
+    // Player Soul-Lantern light pool with organic double-sinus flicker
     const lanternScale = game.state.worldFlags.lanternUpgraded ? 1.45 : 1.0;
-    const flicker = Math.sin(time * 9) * 7;
+    const flicker = Math.sin(time * 8.5) * 6 + Math.cos(time * 14) * 3.5;
     punchLight(
       game.player.x + game.player.w / 2,
       game.player.y + game.player.h / 2,
-      (265 + flicker) * lanternScale
+      (270 + flicker) * lanternScale
     );
 
     // Brazier light
     if (room.brazier) {
-      punchLight(room.brazier.x, room.brazier.y - 35, 235 + flicker);
+      punchLight(room.brazier.x, room.brazier.y - 35, 240 + flicker * 0.8);
+    }
+
+    // Collectible items & Lumen Shards punch soft ambient glows
+    if (room.items) {
+      for (const it of room.items) {
+        if (!game.isItemCollected(room.id, it)) {
+          punchLight(it.x, it.y, 85);
+        }
+      }
     }
 
     // Room props light sources
@@ -5205,7 +5300,28 @@ class Renderer {
       }
     }
 
+    // Draw darkness & lighting mask onto main canvas
     ctx.drawImage(this.lightCanvas, 0, 0);
+
+    // Cinematic Vignette Overlay around viewport corners
+    ctx.save();
+    const vGrad = ctx.createRadialGradient(W / 2, H / 2, W * 0.35, W / 2, H / 2, W * 0.75);
+    vGrad.addColorStop(0, 'rgba(0, 0, 0, 0)');
+    vGrad.addColorStop(0.65, 'rgba(2, 4, 8, 0.32)');
+    vGrad.addColorStop(1, 'rgba(1, 2, 5, 0.75)');
+    ctx.fillStyle = vGrad;
+    ctx.fillRect(0, 0, W, H);
+
+    // Red Damage Border Vignette Flash
+    if (game.player && game.player.hurtTimer > 0) {
+      const hurtAlpha = Math.min(0.42, (game.player.hurtTimer / 0.32) * 0.42);
+      const hGrad = ctx.createRadialGradient(W / 2, H / 2, W * 0.25, W / 2, H / 2, W * 0.68);
+      hGrad.addColorStop(0, 'rgba(224, 83, 104, 0)');
+      hGrad.addColorStop(1, `rgba(224, 83, 104, ${hurtAlpha})`);
+      ctx.fillStyle = hGrad;
+      ctx.fillRect(0, 0, W, H);
+    }
+    ctx.restore();
   }
 
   renderMinimap(game) {
@@ -5969,16 +6085,17 @@ class Game {
     if (this.player.invulnTimer > 0 || this.mode !== 'playing') return;
     this.player.hp -= amount;
     this.player.invulnTimer = 1.15;
+    this.player.hurtTimer = 0.32;
     this.player.vy = -280;
     this.player.vx = -this.player.facing * 220;
     audio.playerHurt();
-    this.addScreenShake(7, 0.25);
+    this.addScreenShake(9, 0.32);
     this.spawnParticles(
       this.player.x + this.player.w / 2,
       this.player.y + this.player.h / 2,
       '#e05368',
-      18,
-      140
+      22,
+      160
     );
     this.updateHud();
 
@@ -6232,18 +6349,26 @@ class Game {
       if (rectOverlap(atk, e)) {
         this.player.hitTargetsThisSwing?.add(e);
         e.hp -= damage;
-        e.hurtFlash = 0.14;
+        e.hurtFlash = 0.16;
         audio.hitEnemy();
         this.player.soul = Math.min(this.player.maxSoul, this.player.soul + soulGain);
+        this.addScreenShake(atk.isHeavy ? 6.5 : 3.8, atk.isHeavy ? 0.22 : 0.12);
+
         if (this.player.attackDir === 'down') {
-          this.player.vy = -440; // Pogo bounce!
+          this.player.vy = -450; // Pogo bounce!
+          this.player.canDoubleJump = this.hasAbility('doubleJump');
+          this.player.canAirDash = true;
+          this.addScreenShake(4.5, 0.14);
         }
-        this.spawnParticles(e.x + e.w / 2, e.y + e.h / 2, '#ffbe55', 10, 110);
+
+        // Directional spark bursts
+        this.spawnParticles(e.x + e.w / 2, e.y + e.h / 2, atk.isHeavy ? '#d27eff' : '#ffbe55', atk.isHeavy ? 18 : 12, 130);
 
         if (e.hp <= 0) {
           e.dead = true;
           this.state.lumens += 8;
-          this.spawnParticles(e.x + e.w / 2, e.y + e.h / 2, '#f3a847', 16, 130);
+          this.addScreenShake(5, 0.18);
+          this.spawnParticles(e.x + e.w / 2, e.y + e.h / 2, '#f3a847', 20, 160);
         }
         this.updateHud();
       }
@@ -6259,15 +6384,19 @@ class Game {
       const b = this.activeBoss;
       this.player.hitTargetsThisSwing?.add(b);
       b.hp -= damage;
-      b.hurtFlash = 0.12;
+      b.hurtFlash = 0.14;
       audio.hitEnemy();
       this.player.soul = Math.min(this.player.maxSoul, this.player.soul + soulGain);
+      this.addScreenShake(atk.isHeavy ? 7 : 4.5, 0.16);
+
       if (this.player.attackDir === 'down') {
-        this.player.vy = -450;
+        this.player.vy = -460;
+        this.player.canDoubleJump = this.hasAbility('doubleJump');
+        this.player.canAirDash = true;
       }
       const pct = Math.max(0, (b.hp / b.maxHp) * 100);
       document.getElementById('boss-hp-fill').style.width = `${pct}%`;
-      this.spawnParticles(b.x + b.w / 2, b.y + b.h / 2, '#e05368', 14, 140);
+      this.spawnParticles(b.x + b.w / 2, b.y + b.h / 2, '#e05368', 16, 150);
 
       if (b.hp <= 0) {
         b.dead = true;
@@ -6276,8 +6405,8 @@ class Game {
         document.getElementById('boss-hud').classList.add('hidden');
         audio.questComplete();
         audio.setRegion(this.currentRoom.biome, false);
-        this.addScreenShake(10, 0.4);
-        this.spawnParticles(b.x + b.w / 2, b.y + b.h / 2, '#8df6fa', 36, 200);
+        this.addScreenShake(12, 0.5);
+        this.spawnParticles(b.x + b.w / 2, b.y + b.h / 2, '#8df6fa', 40, 220);
         this.showToast(`${b.name} Vanquished!`, '+100 Lumen Shards claimed.');
         SaveSystem.save(this.state);
       }
@@ -6609,18 +6738,53 @@ class Game {
   }
 
   updateParticles(dt, room) {
-    // Spawn subtle biome particles
-    if (this.particles.length < 55 && Math.random() < 0.45) {
+    // 1. Soul Brazier continuous glowing flame motes
+    if (room.brazier && Math.random() < 0.35) {
+      const b = room.brazier;
+      const isActive = this.state.checkpoint && this.state.checkpoint.roomId === room.id;
+      this.particles.push({
+        x: b.x + (Math.random() - 0.5) * 16,
+        y: b.y - 42,
+        vx: (Math.random() - 0.5) * 18,
+        vy: -28 - Math.random() * 32,
+        color: isActive ? '#5ce1e6' : '#f3a847',
+        size: 1.8 + Math.random() * 1.6,
+        life: 0.65,
+        maxLife: 0.65
+      });
+    }
+
+    // 2. Glowing aura particles around uncollected items & Lumen Shards
+    if (room.items && Math.random() < 0.3) {
+      for (const it of room.items) {
+        if (this.isItemCollected(room.id, it)) continue;
+        const col = it.type === 'ability' ? '#d27eff' : it.type === 'mask_upgrade' ? '#8df6fa' : '#f3a847';
+        const pAngle = Math.random() * Math.PI * 2;
+        this.particles.push({
+          x: it.x + Math.cos(pAngle) * 12,
+          y: it.y + Math.sin(pAngle) * 12,
+          vx: -Math.cos(pAngle) * 8,
+          vy: -14 - Math.random() * 18,
+          color: col,
+          size: 1.6 + Math.random() * 1.4,
+          life: 0.6,
+          maxLife: 0.6
+        });
+      }
+    }
+
+    // 3. Subtle ambient biome particles (spores, floating embers, stardust)
+    if (this.particles.length < 65 && Math.random() < 0.5) {
       const b = BIOMES[room.biome];
       this.particles.push({
         x: this.camX + Math.random() * this.canvas.width,
         y: this.camY + Math.random() * this.canvas.height,
-        vx: (Math.random() - 0.5) * 18,
-        vy: b.particleType === 'drips' ? 95 : -12 - Math.random() * 18,
+        vx: (Math.random() - 0.5) * 16,
+        vy: b.particleType === 'drips' ? 95 : -14 - Math.random() * 18,
         color: b.accent,
         size: 1.5 + Math.random() * 2,
-        life: 1.8,
-        maxLife: 1.8
+        life: 2.0,
+        maxLife: 2.0
       });
     }
 
@@ -6636,20 +6800,28 @@ class Game {
   }
 
   updateCamera(dt) {
-    const targetX = this.player.x + this.player.w / 2 - this.canvas.width / 2;
-    const targetY = this.player.y + this.player.h / 2 - this.canvas.height / 2;
+    // Dynamic look-ahead based on player movement direction and horizontal velocity
+    const lookAheadX = this.player.facing * Math.min(85, Math.abs(this.player.vx) * 0.24);
+    const lookAheadY = Math.max(-50, Math.min(50, this.player.vy * 0.10));
 
-    this.camX += (targetX - this.camX) * Math.min(1, dt * 8);
-    this.camY += (targetY - this.camY) * Math.min(1, dt * 8);
+    const targetX = this.player.x + this.player.w / 2 + lookAheadX - this.canvas.width / 2;
+    const targetY = this.player.y + this.player.h / 2 + lookAheadY - this.canvas.height / 2;
+
+    // Smooth exponential damping / camera lerp
+    this.camX += (targetX - this.camX) * Math.min(1, dt * 6.2);
+    this.camY += (targetY - this.camY) * Math.min(1, dt * 6.2);
 
     // Clamp to 1600x960 room bounds
     this.camX = Math.max(0, Math.min(1600 - this.canvas.width, this.camX));
     this.camY = Math.max(0, Math.min(960 - this.canvas.height, this.camY));
 
+    // Screen Shake Offset with smooth decay
     if (this.shakeTime > 0) {
       this.shakeTime -= dt;
-      this.camX += (Math.random() - 0.5) * this.shakeMag * 2;
-      this.camY += (Math.random() - 0.5) * this.shakeMag * 2;
+      const decay = Math.max(0, this.shakeTime / 0.35);
+      const shakeAmt = this.shakeMag * decay;
+      this.camX += (Math.random() - 0.5) * shakeAmt * 2.2;
+      this.camY += (Math.random() - 0.5) * shakeAmt * 2.2;
       if (this.shakeTime <= 0) this.shakeMag = 0;
     }
   }
@@ -6661,7 +6833,9 @@ class Game {
       heartsEl.innerHTML = '';
       for (let i = 0; i < this.player.maxHp; i++) {
         const mask = document.createElement('div');
-        mask.className = 'mask-heart' + (i >= this.player.hp ? ' empty' : '');
+        const isFilled = i < this.player.hp;
+        const isCritical = this.player.hp === 1 && isFilled;
+        mask.className = 'mask-heart' + (!isFilled ? ' empty' : '') + (isCritical ? ' low-health' : '');
         heartsEl.appendChild(mask);
       }
     }

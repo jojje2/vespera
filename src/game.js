@@ -638,16 +638,17 @@ export class Game {
     if (this.player.invulnTimer > 0 || this.mode !== 'playing') return;
     this.player.hp -= amount;
     this.player.invulnTimer = 1.15;
+    this.player.hurtTimer = 0.32;
     this.player.vy = -280;
     this.player.vx = -this.player.facing * 220;
     audio.playerHurt();
-    this.addScreenShake(7, 0.25);
+    this.addScreenShake(9, 0.32);
     this.spawnParticles(
       this.player.x + this.player.w / 2,
       this.player.y + this.player.h / 2,
       '#e05368',
-      18,
-      140
+      22,
+      160
     );
     this.updateHud();
 
@@ -901,18 +902,26 @@ export class Game {
       if (rectOverlap(atk, e)) {
         this.player.hitTargetsThisSwing?.add(e);
         e.hp -= damage;
-        e.hurtFlash = 0.14;
+        e.hurtFlash = 0.16;
         audio.hitEnemy();
         this.player.soul = Math.min(this.player.maxSoul, this.player.soul + soulGain);
+        this.addScreenShake(atk.isHeavy ? 6.5 : 3.8, atk.isHeavy ? 0.22 : 0.12);
+
         if (this.player.attackDir === 'down') {
-          this.player.vy = -440; // Pogo bounce!
+          this.player.vy = -450; // Pogo bounce!
+          this.player.canDoubleJump = this.hasAbility('doubleJump');
+          this.player.canAirDash = true;
+          this.addScreenShake(4.5, 0.14);
         }
-        this.spawnParticles(e.x + e.w / 2, e.y + e.h / 2, '#ffbe55', 10, 110);
+
+        // Directional spark bursts
+        this.spawnParticles(e.x + e.w / 2, e.y + e.h / 2, atk.isHeavy ? '#d27eff' : '#ffbe55', atk.isHeavy ? 18 : 12, 130);
 
         if (e.hp <= 0) {
           e.dead = true;
           this.state.lumens += 8;
-          this.spawnParticles(e.x + e.w / 2, e.y + e.h / 2, '#f3a847', 16, 130);
+          this.addScreenShake(5, 0.18);
+          this.spawnParticles(e.x + e.w / 2, e.y + e.h / 2, '#f3a847', 20, 160);
         }
         this.updateHud();
       }
@@ -928,15 +937,19 @@ export class Game {
       const b = this.activeBoss;
       this.player.hitTargetsThisSwing?.add(b);
       b.hp -= damage;
-      b.hurtFlash = 0.12;
+      b.hurtFlash = 0.14;
       audio.hitEnemy();
       this.player.soul = Math.min(this.player.maxSoul, this.player.soul + soulGain);
+      this.addScreenShake(atk.isHeavy ? 7 : 4.5, 0.16);
+
       if (this.player.attackDir === 'down') {
-        this.player.vy = -450;
+        this.player.vy = -460;
+        this.player.canDoubleJump = this.hasAbility('doubleJump');
+        this.player.canAirDash = true;
       }
       const pct = Math.max(0, (b.hp / b.maxHp) * 100);
       document.getElementById('boss-hp-fill').style.width = `${pct}%`;
-      this.spawnParticles(b.x + b.w / 2, b.y + b.h / 2, '#e05368', 14, 140);
+      this.spawnParticles(b.x + b.w / 2, b.y + b.h / 2, '#e05368', 16, 150);
 
       if (b.hp <= 0) {
         b.dead = true;
@@ -945,8 +958,8 @@ export class Game {
         document.getElementById('boss-hud').classList.add('hidden');
         audio.questComplete();
         audio.setRegion(this.currentRoom.biome, false);
-        this.addScreenShake(10, 0.4);
-        this.spawnParticles(b.x + b.w / 2, b.y + b.h / 2, '#8df6fa', 36, 200);
+        this.addScreenShake(12, 0.5);
+        this.spawnParticles(b.x + b.w / 2, b.y + b.h / 2, '#8df6fa', 40, 220);
         this.showToast(`${b.name} Vanquished!`, '+100 Lumen Shards claimed.');
         SaveSystem.save(this.state);
       }
@@ -1278,18 +1291,53 @@ export class Game {
   }
 
   updateParticles(dt, room) {
-    // Spawn subtle biome particles
-    if (this.particles.length < 55 && Math.random() < 0.45) {
+    // 1. Soul Brazier continuous glowing flame motes
+    if (room.brazier && Math.random() < 0.35) {
+      const b = room.brazier;
+      const isActive = this.state.checkpoint && this.state.checkpoint.roomId === room.id;
+      this.particles.push({
+        x: b.x + (Math.random() - 0.5) * 16,
+        y: b.y - 42,
+        vx: (Math.random() - 0.5) * 18,
+        vy: -28 - Math.random() * 32,
+        color: isActive ? '#5ce1e6' : '#f3a847',
+        size: 1.8 + Math.random() * 1.6,
+        life: 0.65,
+        maxLife: 0.65
+      });
+    }
+
+    // 2. Glowing aura particles around uncollected items & Lumen Shards
+    if (room.items && Math.random() < 0.3) {
+      for (const it of room.items) {
+        if (this.isItemCollected(room.id, it)) continue;
+        const col = it.type === 'ability' ? '#d27eff' : it.type === 'mask_upgrade' ? '#8df6fa' : '#f3a847';
+        const pAngle = Math.random() * Math.PI * 2;
+        this.particles.push({
+          x: it.x + Math.cos(pAngle) * 12,
+          y: it.y + Math.sin(pAngle) * 12,
+          vx: -Math.cos(pAngle) * 8,
+          vy: -14 - Math.random() * 18,
+          color: col,
+          size: 1.6 + Math.random() * 1.4,
+          life: 0.6,
+          maxLife: 0.6
+        });
+      }
+    }
+
+    // 3. Subtle ambient biome particles (spores, floating embers, stardust)
+    if (this.particles.length < 65 && Math.random() < 0.5) {
       const b = BIOMES[room.biome];
       this.particles.push({
         x: this.camX + Math.random() * this.canvas.width,
         y: this.camY + Math.random() * this.canvas.height,
-        vx: (Math.random() - 0.5) * 18,
-        vy: b.particleType === 'drips' ? 95 : -12 - Math.random() * 18,
+        vx: (Math.random() - 0.5) * 16,
+        vy: b.particleType === 'drips' ? 95 : -14 - Math.random() * 18,
         color: b.accent,
         size: 1.5 + Math.random() * 2,
-        life: 1.8,
-        maxLife: 1.8
+        life: 2.0,
+        maxLife: 2.0
       });
     }
 
@@ -1305,20 +1353,28 @@ export class Game {
   }
 
   updateCamera(dt) {
-    const targetX = this.player.x + this.player.w / 2 - this.canvas.width / 2;
-    const targetY = this.player.y + this.player.h / 2 - this.canvas.height / 2;
+    // Dynamic look-ahead based on player movement direction and horizontal velocity
+    const lookAheadX = this.player.facing * Math.min(85, Math.abs(this.player.vx) * 0.24);
+    const lookAheadY = Math.max(-50, Math.min(50, this.player.vy * 0.10));
 
-    this.camX += (targetX - this.camX) * Math.min(1, dt * 8);
-    this.camY += (targetY - this.camY) * Math.min(1, dt * 8);
+    const targetX = this.player.x + this.player.w / 2 + lookAheadX - this.canvas.width / 2;
+    const targetY = this.player.y + this.player.h / 2 + lookAheadY - this.canvas.height / 2;
+
+    // Smooth exponential damping / camera lerp
+    this.camX += (targetX - this.camX) * Math.min(1, dt * 6.2);
+    this.camY += (targetY - this.camY) * Math.min(1, dt * 6.2);
 
     // Clamp to 1600x960 room bounds
     this.camX = Math.max(0, Math.min(1600 - this.canvas.width, this.camX));
     this.camY = Math.max(0, Math.min(960 - this.canvas.height, this.camY));
 
+    // Screen Shake Offset with smooth decay
     if (this.shakeTime > 0) {
       this.shakeTime -= dt;
-      this.camX += (Math.random() - 0.5) * this.shakeMag * 2;
-      this.camY += (Math.random() - 0.5) * this.shakeMag * 2;
+      const decay = Math.max(0, this.shakeTime / 0.35);
+      const shakeAmt = this.shakeMag * decay;
+      this.camX += (Math.random() - 0.5) * shakeAmt * 2.2;
+      this.camY += (Math.random() - 0.5) * shakeAmt * 2.2;
       if (this.shakeTime <= 0) this.shakeMag = 0;
     }
   }
@@ -1330,7 +1386,9 @@ export class Game {
       heartsEl.innerHTML = '';
       for (let i = 0; i < this.player.maxHp; i++) {
         const mask = document.createElement('div');
-        mask.className = 'mask-heart' + (i >= this.player.hp ? ' empty' : '');
+        const isFilled = i < this.player.hp;
+        const isCritical = this.player.hp === 1 && isFilled;
+        mask.className = 'mask-heart' + (!isFilled ? ' empty' : '') + (isCritical ? ' low-health' : '');
         heartsEl.appendChild(mask);
       }
     }
