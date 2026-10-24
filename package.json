@@ -1,0 +1,10 @@
+{
+  "name": "vespera-echoes-of-the-undercroft",
+  "version": "1.0.0",
+  "description": "An original 2D atmospheric Metroidvania adventure game built from scratch.",
+  "type": "module",
+  "scripts": {
+    "start": "node server.js",
+    "verify": "node scripts/verify_game.mjs"
+  }
+}

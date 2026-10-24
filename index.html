@@ -1,0 +1,299 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <title>VESPERA: Echoes of the Undercroft — A 2D Metroidvania Adventure</title>
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+  <div id="game-container">
+    <!-- Main Game Canvas -->
+    <canvas id="game-canvas" width="1280" height="720"></canvas>
+
+    <!-- In-Game HUD -->
+    <div id="hud" class="hidden">
+      <div class="hud-top-left">
+        <!-- Soul Lantern & Health Masks -->
+        <div class="lantern-vessel">
+          <div class="lantern-glow" id="hud-lantern-glow"></div>
+          <div class="lantern-core">
+            <span class="lantern-label">SOUL</span>
+            <div class="soul-bar-bg">
+              <div id="hud-soul-fill" class="soul-bar-fill" style="width: 50%"></div>
+            </div>
+          </div>
+        </div>
+        <div class="health-And-resources">
+          <div id="hud-hearts" class="hearts-row" aria-label="Health"></div>
+          <div class="resources-row">
+            <div class="resource-pill" title="Lumen Shards (Currency)">
+              <span class="icon-lumen">◆</span>
+              <span id="hud-lumens">0</span>
+            </div>
+            <div class="resource-pill" title="Choir Seals Broken">
+              <span class="icon-seal">❖</span>
+              <span id="hud-seals">0 / 3</span>
+            </div>
+            <div class="resource-pill" title="Clues of Liora Found">
+              <span class="icon-clue">✦</span>
+              <span id="hud-clues">0 / 6</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Equipped Abilities Bar -->
+      <div class="hud-abilities" id="hud-abilities">
+        <div class="ability-badge unlocked" id="ab-slash" title="Gloom-Cleaver [J / Z / X]">⚔<span>Cleaver</span></div>
+        <div class="ability-badge locked" id="ab-dash" title="Moth-Step Cloak [Shift / K / C]">💨<span>Dash</span></div>
+        <div class="ability-badge locked" id="ab-wall" title="Mantis Talons [Wall Jump]">🧗<span>Talons</span></div>
+        <div class="ability-badge locked" id="ab-double" title="Zephyr Plume [Double Jump]">🪶<span>Plume</span></div>
+        <div class="ability-badge locked" id="ab-heavy" title="Resonance Strike [L / V]">⚡<span>Resonance</span></div>
+        <div class="ability-badge locked" id="ab-thorn" title="Cinder-Ward Mantle [Thorn & Acid Ward]">🛡<span>Ward</span></div>
+      </div>
+
+      <!-- Top Right Region & Mini-Map / Tracker -->
+      <div class="hud-top-right">
+        <div class="region-banner">
+          <div id="hud-region-name" class="region-title">Sanctum of Ash</div>
+          <div id="hud-room-name" class="room-subtitle">Watchtower Sinkhole</div>
+        </div>
+        <canvas id="minimap-canvas" width="210" height="120" title="Press [M] for World Atlas"></canvas>
+        <div id="hud-active-quest" class="active-quest-box">
+          <div class="aq-header">ACTIVE OBJECTIVE <span class="key-hint">[Q] Quests [M] Map [Esc] Menu</span></div>
+          <div id="hud-quest-title" class="aq-title">Echoes of Liora</div>
+          <div id="hud-quest-desc" class="aq-desc">Descend into the Sanctum of Ash and search for traces of Liora.</div>
+        </div>
+      </div>
+
+      <!-- Contextual Interaction Prompt -->
+      <div id="interaction-prompt" class="interaction-prompt hidden">
+        <span class="key-cap">E</span> <span id="interaction-text">Inspect</span>
+      </div>
+
+      <!-- Boss Health Bar -->
+      <div id="boss-hud" class="boss-hud hidden">
+        <div id="boss-name" class="boss-name">THE BROOD-STALKER</div>
+        <div id="boss-title" class="boss-subtitle">Apex Hunter of the Spore-Weald</div>
+        <div class="boss-bar-frame">
+          <div id="boss-hp-fill" class="boss-hp-fill" style="width: 100%"></div>
+        </div>
+      </div>
+
+      <!-- Controls Quick Strip -->
+      <div class="hud-bottom-controls">
+        <span><b>A/D</b> or <b>◀/▶</b> Move</span>
+        <span><b>W/Space</b> Jump</span>
+        <span><b>J/Z</b> Attack</span>
+        <span><b>K/Shift</b> Dash</span>
+        <span><b>L/V</b> Resonance Strike</span>
+        <span><b>H/F</b> Focus Heal (35 Soul)</span>
+        <span><b>E/Up</b> Interact</span>
+        <span><b>Q</b> Journal</span>
+        <span><b>M</b> Map</span>
+      </div>
+    </div>
+
+    <!-- Floating Notifications / Area Title Banner -->
+    <div id="area-banner" class="area-banner hidden">
+      <div class="area-banner-line"></div>
+      <h2 id="area-banner-title">SANCTUM OF ASH</h2>
+      <p id="area-banner-sub">Ancient Underground Ruins</p>
+      <div class="area-banner-line"></div>
+    </div>
+
+    <div id="toast-container" class="toast-container"></div>
+
+    <!-- Title Screen -->
+    <div id="title-screen" class="overlay-screen">
+      <div class="title-vignette"></div>
+      <div class="title-content">
+        <div class="title-emblem">❖</div>
+        <h1 class="game-title">VESPERA</h1>
+        <h2 class="game-subtitle">ECHOES OF THE UNDERCROFT</h2>
+        <p class="title-lore">
+          On the night of the Moonless Tremor, the Pale Choir rose from the chasm and stole <strong>Liora</strong>—your sister and the last Weaver of Echo-Glass—into the sunken kingdom beneath the earth. Take up the Gloom-Cleaver and the Soul-Lantern. Descend the seven strata, awaken ancient relics, aid the lost souls of the Undercroft, and shatter the Abyssal Cage.
+        </p>
+        <div class="title-buttons">
+          <button id="btn-continue" class="menu-btn primary-btn hidden">Continue Journey</button>
+          <button id="btn-new-game" class="menu-btn primary-btn">Start New Adventure</button>
+          <button id="btn-title-controls" class="menu-btn">Controls &amp; Guide</button>
+          <button id="btn-title-settings" class="menu-btn">Audio &amp; Settings</button>
+        </div>
+        <div id="save-summary" class="save-summary hidden"></div>
+      </div>
+    </div>
+
+    <!-- Pause / Journal / Map / Inventory / Settings Unified Modal -->
+    <div id="pause-modal" class="overlay-screen hidden">
+      <div class="modal-window large-modal">
+        <div class="modal-tabs">
+          <button class="tab-btn active" data-tab="tab-quests">Quests &amp; Clues</button>
+          <button class="tab-btn" data-tab="tab-map">World Atlas</button>
+          <button class="tab-btn" data-tab="tab-inventory">Relics &amp; Abilities</button>
+          <button class="tab-btn" data-tab="tab-settings">Settings &amp; Save</button>
+          <button id="btn-resume" class="tab-btn resume-btn">Resume [Esc]</button>
+        </div>
+
+        <!-- TAB 1: QUESTS & STORY CLUES -->
+        <div id="tab-quests" class="tab-panel active">
+          <div class="split-panel">
+            <div class="panel-left">
+              <h3>Main &amp; Side Quests</h3>
+              <div id="quest-list" class="scroll-list"></div>
+            </div>
+            <div class="panel-right">
+              <div id="quest-detail-view" class="detail-card">
+                <h3 id="qd-title">Select a Quest</h3>
+                <div id="qd-status" class="qd-badge">Active</div>
+                <p id="qd-giver" class="qd-meta"></p>
+                <p id="qd-desc" class="qd-body"></p>
+                <h4>Objectives &amp; Clues</h4>
+                <ul id="qd-stages" class="stage-list"></ul>
+                <div id="qd-reward" class="qd-reward"></div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- TAB 2: INTERCONNECTED WORLD ATLAS -->
+        <div id="tab-map" class="tab-panel">
+          <div class="map-header">
+            <h3>Subterranean Atlas of Vespera</h3>
+            <div class="map-legend">
+              <span><i class="dot player-dot"></i> Kaelen</span>
+              <span><i class="dot brazier-dot"></i> Soul Brazier</span>
+              <span><i class="dot npc-dot"></i> Known Inhabitant</span>
+              <span><i class="dot gate-dot"></i> Sealed / Ability Route</span>
+              <span><i class="dot rescue-dot"></i> Abyssal Sanctum</span>
+            </div>
+          </div>
+          <div class="atlas-container">
+            <canvas id="atlas-canvas" width="900" height="440"></canvas>
+            <div id="atlas-room-info" class="atlas-room-info">
+              <h4 id="atlas-room-title">Hover or click a discovered chamber</h4>
+              <p id="atlas-room-desc">Explore chambers to chart the underground kingdom.</p>
+            </div>
+          </div>
+        </div>
+
+        <!-- TAB 3: INVENTORY, ABILITIES & STORY CLUES -->
+        <div id="tab-inventory" class="tab-panel">
+          <div class="split-panel">
+            <div class="panel-left">
+              <h3>Awakened Abilities &amp; Upgrades</h3>
+              <div id="abilities-list" class="grid-cards"></div>
+            </div>
+            <div class="panel-right">
+              <h3>Collected Items, Relics &amp; Liora's Clues</h3>
+              <div id="inventory-list" class="grid-cards"></div>
+            </div>
+          </div>
+        </div>
+
+        <!-- TAB 4: SETTINGS & SAVE MANAGEMENT -->
+        <div id="tab-settings" class="tab-panel">
+          <div class="settings-grid">
+            <div class="settings-card">
+              <h3>Audio &amp; Atmosphere</h3>
+              <label class="setting-row">
+                <span>Master Volume</span>
+                <input type="range" id="opt-master-vol" min="0" max="100" value="75" />
+              </label>
+              <label class="setting-row">
+                <span>Ambient Soundtrack Volume</span>
+                <input type="range" id="opt-music-vol" min="0" max="100" value="65" />
+              </label>
+              <label class="setting-row">
+                <span>Sound Effects Volume</span>
+                <input type="range" id="opt-sfx-vol" min="0" max="100" value="85" />
+              </label>
+              <label class="setting-row">
+                <span>Screen Shake Intensity</span>
+                <input type="checkbox" id="opt-screenshake" checked />
+              </label>
+              <label class="setting-row">
+                <span>Touch / On-Screen Controls</span>
+                <input type="checkbox" id="opt-touch-controls" />
+              </label>
+            </div>
+            <div class="settings-card">
+              <h3>Persistence &amp; Save Data</h3>
+              <p class="small-note">Progress is automatically saved at Soul Braziers, when acquiring abilities, and upon completing quest milestones. You can also save manually at any time.</p>
+              <div class="button-stack">
+                <button id="btn-save-now" class="menu-btn primary-btn">Save Progress Now</button>
+                <button id="btn-respawn-brazier" class="menu-btn">Return to Last Soul Brazier</button>
+                <button id="btn-reset-save" class="menu-btn danger-btn">Erase Save &amp; Return to Title</button>
+              </div>
+              <div id="save-status-msg" class="save-status-msg"></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Dialogue & Shop Modal -->
+    <div id="dialogue-modal" class="dialogue-overlay hidden">
+      <div class="dialogue-box">
+        <div class="dialogue-header">
+          <div id="dlg-portrait" class="dlg-portrait"></div>
+          <div class="dlg-title-group">
+            <h3 id="dlg-speaker">Orin the Chronicler</h3>
+            <span id="dlg-role" class="dlg-role">Keeper of the Sunken Annals</span>
+          </div>
+        </div>
+        <div id="dlg-text" class="dlg-text"></div>
+        <div id="dlg-shop-items" class="dlg-shop-items hidden"></div>
+        <div id="dlg-choices" class="dlg-choices"></div>
+      </div>
+    </div>
+
+    <!-- Death / Soul Recovery Screen -->
+    <div id="death-screen" class="overlay-screen hidden">
+      <div class="death-content">
+        <h2 class="death-title">THE LANTERN FLICKERS...</h2>
+        <p id="death-desc">Your vessel was overwhelmed, but the last Soul Brazier recalls your spirit. None of your discoveries, relics, or quest progress have been lost.</p>
+        <button id="btn-respawn" class="menu-btn primary-btn">Reawaken at Soul Brazier [Enter]</button>
+      </div>
+    </div>
+
+    <!-- Victory / Rescue Ending Screen -->
+    <div id="victory-screen" class="overlay-screen hidden">
+      <div class="victory-content">
+        <div class="title-emblem">✦</div>
+        <h1 class="victory-title">LIORA RESCUED</h1>
+        <h2 class="victory-subtitle">THE DAWN RETURNS TO VESPERA</h2>
+        <p id="victory-story" class="victory-lore">
+          With the Archon of the Hollow Spire vanquished and the Echo-Glass Cage shattered by your Resonance Strike, Liora steps free from the Abyssal Conduit. Together, your twin lanterns illuminate the ancient lifts ascending back toward the surface watchtower, while the inhabitants you aided across the Undercroft gather to witness the lifting of the gloom.
+        </p>
+        <div id="victory-stats" class="victory-stats"></div>
+        <div class="title-buttons">
+          <button id="btn-continue-exploring" class="menu-btn primary-btn">Continue Exploring the Undercroft</button>
+          <button id="btn-victory-title" class="menu-btn">Save &amp; Return to Title</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Mobile / Touch Controls -->
+    <div id="touch-controls" class="touch-controls hidden">
+      <div class="touch-dpad">
+        <button data-touch="left" class="t-btn">◀</button>
+        <button data-touch="right" class="t-btn">▶</button>
+        <button data-touch="up" class="t-btn">▲</button>
+        <button data-touch="down" class="t-btn">▼</button>
+      </div>
+      <div class="touch-actions">
+        <button data-touch="jump" class="t-btn act-jump">JUMP</button>
+        <button data-touch="attack" class="t-btn act-atk">SLASH</button>
+        <button data-touch="dash" class="t-btn act-dash">DASH</button>
+        <button data-touch="heavy" class="t-btn act-heavy">RESONANCE</button>
+        <button data-touch="interact" class="t-btn act-use">USE</button>
+        <button data-touch="heal" class="t-btn act-heal">HEAL</button>
+      </div>
+    </div>
+  </div>
+
+  <script src="bundle.js"></script>
+</body>
+</html>
