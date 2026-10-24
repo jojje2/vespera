@@ -1330,8 +1330,8 @@ export class Game {
     if (this.particles.length < 65 && Math.random() < 0.5) {
       const b = BIOMES[room.biome];
       this.particles.push({
-        x: this.camX + Math.random() * this.canvas.width,
-        y: this.camY + Math.random() * this.canvas.height,
+        x: this.camX + Math.random() * 1280,
+        y: this.camY + Math.random() * 720,
         vx: (Math.random() - 0.5) * 16,
         vy: b.particleType === 'drips' ? 95 : -14 - Math.random() * 18,
         color: b.accent,
@@ -1353,20 +1353,22 @@ export class Game {
   }
 
   updateCamera(dt) {
+    const viewW = 1280;
+    const viewH = 720;
     // Dynamic look-ahead based on player movement direction and horizontal velocity
     const lookAheadX = this.player.facing * Math.min(85, Math.abs(this.player.vx) * 0.24);
     const lookAheadY = Math.max(-50, Math.min(50, this.player.vy * 0.10));
 
-    const targetX = this.player.x + this.player.w / 2 + lookAheadX - this.canvas.width / 2;
-    const targetY = this.player.y + this.player.h / 2 + lookAheadY - this.canvas.height / 2;
+    const targetX = this.player.x + this.player.w / 2 + lookAheadX - viewW / 2;
+    const targetY = this.player.y + this.player.h / 2 + lookAheadY - viewH / 2;
 
     // Smooth exponential damping / camera lerp
     this.camX += (targetX - this.camX) * Math.min(1, dt * 6.2);
     this.camY += (targetY - this.camY) * Math.min(1, dt * 6.2);
 
     // Clamp to 1600x960 room bounds
-    this.camX = Math.max(0, Math.min(1600 - this.canvas.width, this.camX));
-    this.camY = Math.max(0, Math.min(960 - this.canvas.height, this.camY));
+    this.camX = Math.max(0, Math.min(1600 - viewW, this.camX));
+    this.camY = Math.max(0, Math.min(960 - viewH, this.camY));
 
     // Screen Shake Offset with smooth decay
     if (this.shakeTime > 0) {
