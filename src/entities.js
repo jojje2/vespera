@@ -41,6 +41,10 @@ export class Player {
 
     // Animation
     this.animTime = 0;
+    this.walkCycle = 0;
+    this.scaleX = 1.0;
+    this.scaleY = 1.0;
+    this.healAnimTimer = 0;
     this.capeHistory = [];
   }
 
@@ -116,12 +120,23 @@ export class Player {
     this.capeHistory.unshift({ x: this.x + this.w / 2, y: this.y + 18, facing: this.facing });
     if (this.capeHistory.length > 8) this.capeHistory.pop();
 
+    // Animation decay & interpolation
+    this.scaleX += (1.0 - this.scaleX) * Math.min(1, dt * 14);
+    this.scaleY += (1.0 - this.scaleY) * Math.min(1, dt * 14);
+    if (this.healAnimTimer > 0) this.healAnimTimer -= dt;
+    if (this.onGround && Math.abs(this.vx) > 15) {
+      this.walkCycle += dt * 14;
+    } else {
+      this.walkCycle += (0 - this.walkCycle) * Math.min(1, dt * 10);
+    }
+
     // Focus Heal
     if (input.justPressed('heal') && this.soul >= 35 && this.hp < this.maxHp) {
       this.soul -= 35;
       this.hp = Math.min(this.maxHp, this.hp + 1);
+      this.healAnimTimer = 0.65;
       audio.heal();
-      game.spawnParticles(this.x + this.w / 2, this.y + this.h / 2, '#5ce1e6', 18, 120);
+      game.spawnParticles(this.x + this.w / 2, this.y + this.h / 2, '#5ce1e6', 22, 130);
       game.updateHud();
     }
 
@@ -134,6 +149,8 @@ export class Player {
     ) {
       this.dashTimer = 0.17;
       this.dashCooldown = hasSwift ? 0.38 : 0.50;
+      this.scaleX = 1.35;
+      this.scaleY = 0.72;
       if (!this.onGround) this.canAirDash = false;
       if (game.hasAbility('thornWard')) {
         this.invulnTimer = Math.max(this.invulnTimer, 0.22);
@@ -215,6 +232,8 @@ export class Player {
       if (this.coyoteTimer > 0) {
         // Normal or Coyote Jump
         this.vy = -565;
+        this.scaleY = 1.25;
+        this.scaleX = 0.8;
         this.onGround = false;
         this.coyoteTimer = 0;
         this.jumpBuffer = 0;
@@ -224,6 +243,8 @@ export class Player {
       } else if (this.wallSide !== 0 && game.hasAbility('wallJump')) {
         // Wall Jump
         this.vy = -540;
+        this.scaleY = 1.28;
+        this.scaleX = 0.78;
         this.vx = -this.wallSide * 320;
         this.facing = -this.wallSide;
         this.wallJumpLock = 0.15;
@@ -240,6 +261,8 @@ export class Player {
       } else if (this.canDoubleJump && game.hasAbility('doubleJump')) {
         // Double Jump (Zephyr Plume)
         this.vy = -535;
+        this.scaleY = 1.32;
+        this.scaleX = 0.76;
         this.canDoubleJump = false;
         this.jumpBuffer = 0;
         audio.doubleJump();
@@ -343,6 +366,10 @@ export class Player {
       }
       if (rectOverlap(this, p)) {
         if (this.vy >= 0) {
+          if (this.vy > 140) {
+            this.scaleY = 0.78;
+            this.scaleX = 1.22;
+          }
           this.y = p.y - this.h;
           this.vy = 0;
           this.onGround = true;
@@ -382,6 +409,10 @@ export class Enemy {
     this.timer = Math.random() * 4;
     this.state = 'patrol';
     this.stateTimer = 0;
+    this.walkCycle = Math.random() * 10;
+    this.wingCycle = Math.random() * 10;
+    this.breathCycle = Math.random() * 10;
+    this.isAlert = false;
 
     // Configure per type
     switch (this.type) {
@@ -462,12 +493,16 @@ export class Enemy {
   update(dt, game) {
     if (this.dead) return;
     this.timer += dt;
+    this.walkCycle += dt * (Math.abs(this.vx) * 0.12 + 6);
+    this.wingCycle += dt * 18;
+    this.breathCycle += dt * 2.8;
     if (this.hurtFlash > 0) this.hurtFlash -= dt;
 
     const player = game.player;
     const dx = player.x - this.x;
     const dy = player.y - this.y;
     const dist = Math.hypot(dx, dy);
+    this.isAlert = dist < 260;
 
     if (this.flying) {
       // Flying movement

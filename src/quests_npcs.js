@@ -3,39 +3,39 @@
 export const ABILITY_DEFS = {
   slash: {
     id: 'slash',
-    name: 'Gloom-Cleaver',
+    name: 'Verdant Glaive (Kaelen)',
     keyHint: 'J / Z / X',
-    desc: 'Warden Kaelen’s resonant iron blade. Strikes enemies, cuts hanging vines, and channels Soul into your lantern.'
+    desc: 'Warden Kaelen’s signature living spirit-blade. Carved from ironwood and bramble root; strikes foes, cleaves briar vines, and absorbs glowing Soul into your lantern.'
   },
   dash: {
     id: 'dash',
-    name: 'Moth-Step Cloak',
+    name: 'Spore-Step Cloak (Myra)',
     keyHint: 'Shift / K / C',
-    desc: 'Woven from silk of the Spore-Weald ancients. Grants a swift horizontal burst through air or across chasms and past falling traps.'
+    desc: 'Herbalist Myra’s gift, woven from ancient bioluminescent spore-silk. Unleashes a rapid horizontal burst through air, bypassing brambles, pitfalls, and falling hazards.'
   },
   wallJump: {
     id: 'wallJump',
-    name: 'Mantis Talons',
+    name: 'Mantis Talons (Caspian)',
     keyHint: 'Hold toward wall + Jump',
-    desc: 'Carved bone hooks from the Drowned Sluice reliquary. Allows clinging to vertical stone shafts and leaping upward between walls.'
+    desc: 'Explorer Caspian’s specialized climbing claws. Allows clinging to sheer vertical moss-covered cliffs and leaping upward between narrow chasm walls.'
   },
   doubleJump: {
     id: 'doubleJump',
-    name: 'Zephyr Plume',
+    name: 'Verdant Leaf-Wings (Elder Shrine)',
     keyHint: 'Jump in Mid-Air',
-    desc: 'An iridescent pinion crystallized in the Prism Vaults. Press Jump again in mid-air to vault to high ledges and upper galleries.'
+    desc: 'The blessing of the Ancient Bramble Shrine. Unfurls spectral iridescent leaf-wings in mid-air to ascend to lofty ledges and hidden canopies.'
   },
   heavySlash: {
     id: 'heavySlash',
-    name: 'Resonance Strike',
+    name: 'Echo Resonance Strike (Liora)',
     keyHint: 'L / V',
-    desc: 'Harmonic technique taught by Liora’s tuning fork. Shatters brittle crystal barriers, cracked masonry walls, and Echo-Glass seals.'
+    desc: 'Harmonic wave technique gifted by Sister Liora’s tuning shard. Releases a reverberating shockwave that shatters brittle crystal walls and Echo-Glass seals.'
   },
   thornWard: {
     id: 'thornWard',
-    name: 'Cinder-Ward Mantle',
+    name: 'Bramble-Phase Mantle (Sylas)',
     keyHint: 'Passive + Dash Invulnerability',
-    desc: 'Alchemical mantle distilled in the Briar Conservatory. Neutralizes poisonous thorns and caustic mire, and cloaks your Dash in shadow.'
+    desc: 'Botanist Sylas’s distilled alchemical ward. Renders your vessel completely immune to poisonous thorns, acidic sap, and caustic mire, cloaking dashes in shadow.'
   }
 };
 

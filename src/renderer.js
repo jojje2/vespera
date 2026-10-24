@@ -54,6 +54,262 @@ export class Renderer {
       vy: -8 - (i % 5) * 5,
       pulse: i * 0.5
     }));
+
+    // Atmospheric Paranoia: Watcher Eyes in crevices & Stalking Gloam Prowler
+    this.currentRoomEyesId = null;
+    this.watcherEyes = [];
+    this.stalkingPhantom = null;
+    this.shadowParticles = [];
+  }
+
+  initRoomAtmosphere(room, game) {
+    this.currentRoomEyesId = room.id;
+    this.watcherEyes = [];
+    this.stalkingPhantom = null;
+
+    // Create 6-10 pairs of watcher eyes nestled in dark crevices & platform undersides
+    const platforms = room.platforms || [];
+    let eyeIndex = 0;
+    for (const p of platforms) {
+      if (p.w >= 60 && !p.oneWay) {
+        // Place in dark underhang or edge
+        const ey = p.y + p.h + 6;
+        if (ey < 920 && eyeIndex < 9) {
+          const ex = p.x + 24 + ((eyeIndex * 73) % Math.max(20, p.w - 48));
+          this.watcherEyes.push({
+            x: ex,
+            y: ey,
+            spacing: 6 + (eyeIndex % 3) * 1.5,
+            size: 2.2 + (eyeIndex % 3) * 0.6,
+            irisColor: eyeIndex % 3 === 0 ? '#ffea78' : eyeIndex % 3 === 1 ? '#6ee68e' : '#c49bff',
+            alpha: 0,
+            targetAlpha: 0.8 + (eyeIndex % 4) * 0.05,
+            fearRadius: 160 + (eyeIndex % 3) * 35,
+            blinkTimer: 0,
+            blinkDuration: 0.18,
+            nextBlink: 2.0 + (eyeIndex * 1.3) % 4.5,
+            isBlinking: false
+          });
+          eyeIndex++;
+        }
+      }
+    }
+
+    // High background crevice eyes
+    if (room.props) {
+      for (const prop of room.props) {
+        if (prop.type === 'pillar' && eyeIndex < 12) {
+          this.watcherEyes.push({
+            x: prop.x,
+            y: Math.max(60, prop.y - (prop.h || 380) + 40),
+            spacing: 8,
+            size: 2.6,
+            irisColor: '#ffdd6b',
+            alpha: 0,
+            targetAlpha: 0.88,
+            fearRadius: 210,
+            blinkTimer: 0,
+            blinkDuration: 0.16,
+            nextBlink: 1.8,
+            isBlinking: false
+          });
+          eyeIndex++;
+        }
+      }
+    }
+
+    // Stalking Gloam Prowler (watcher phantom on high distant ledge)
+    if (!room.isBossRoom && platforms.length > 2) {
+      // Find an elevated platform
+      const upperPlats = platforms.filter(p => p.y < 460 && p.w >= 80 && !p.oneWay);
+      if (upperPlats.length > 0) {
+        const targetPlat = upperPlats[upperPlats.length - 1];
+        this.stalkingPhantom = {
+          x: targetPlat.x + targetPlat.w * 0.5,
+          y: targetPlat.y,
+          facing: targetPlat.x > 800 ? -1 : 1,
+          state: 'lurking',
+          dissolveProgress: 0,
+          scale: 1.0
+        };
+      }
+    }
+  }
+
+  drawWatcherAtmosphere(ctx, room, game, time) {
+    if (this.currentRoomEyesId !== room.id) {
+      this.initRoomAtmosphere(room, game);
+    }
+
+    const p = game.player;
+    const px = p.x + p.w / 2;
+    const py = p.y + p.h / 2;
+
+    // 1. Draw Stalking Gloam Prowler
+    if (this.stalkingPhantom) {
+      const ph = this.stalkingPhantom;
+      const distToPlayer = Math.hypot(px - ph.x, py - ph.y);
+
+      if (ph.state === 'lurking') {
+        // Look towards player
+        ph.facing = px > ph.x ? 1 : -1;
+
+        // Player gets too close or lantern illuminates them -> dissolve into shadow smoke!
+        if (distToPlayer < 240) {
+          ph.state = 'dissolving';
+          // Spawn shadow puff motes
+          for (let i = 0; i < 18; i++) {
+            this.shadowParticles.push({
+              x: ph.x + (Math.random() - 0.5) * 24,
+              y: ph.y - 20 + (Math.random() - 0.5) * 36,
+              vx: (Math.random() - 0.5) * 45,
+              vy: -25 - Math.random() * 55,
+              size: 2.5 + Math.random() * 3.5,
+              life: 0.9,
+              maxLife: 0.9,
+              color: i % 2 === 0 ? 'rgba(10, 14, 22, 0.9)' : 'rgba(80, 40, 110, 0.65)'
+            });
+          }
+        }
+      } else if (ph.state === 'dissolving') {
+        ph.dissolveProgress += 0.04;
+        if (ph.dissolveProgress >= 1) {
+          this.stalkingPhantom = null;
+        }
+      }
+
+      if (this.stalkingPhantom && ph.state === 'lurking') {
+        ctx.save();
+        const breath = Math.sin(time * 2.8) * 1.5;
+        ctx.translate(ph.x, ph.y);
+        ctx.scale(ph.facing, 1);
+
+        // Dark hooded phantom silhouette
+        ctx.fillStyle = '#060a10';
+        ctx.beginPath();
+        ctx.moveTo(-12, 0);
+        ctx.lineTo(-8, -42 + breath);
+        ctx.lineTo(8, -42 + breath);
+        ctx.lineTo(14, 0);
+        ctx.closePath();
+        ctx.fill();
+
+        // Gnarled curled watcher horns
+        ctx.strokeStyle = '#04070c';
+        ctx.lineWidth = 3;
+        ctx.beginPath();
+        ctx.moveTo(-6, -38 + breath);
+        ctx.quadraticCurveTo(-18, -58 + breath, -14, -68 + breath);
+        ctx.moveTo(6, -38 + breath);
+        ctx.quadraticCurveTo(18, -58 + breath, 14, -68 + breath);
+        ctx.stroke();
+
+        // Chilling glowing watcher eyes staring right through the player
+        ctx.fillStyle = '#fbf0b5';
+        ctx.shadowColor = '#ffeaa7';
+        ctx.shadowBlur = 8;
+        ctx.beginPath();
+        ctx.arc(2, -34 + breath, 2.2, 0, Math.PI * 2);
+        ctx.arc(8, -34 + breath, 2.2, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.shadowBlur = 0;
+
+        ctx.restore();
+      }
+    }
+
+    // 2. Update & Draw Shadow Particles
+    for (let i = this.shadowParticles.length - 1; i >= 0; i--) {
+      const sp = this.shadowParticles[i];
+      sp.life -= 0.025;
+      sp.x += sp.vx * 0.025;
+      sp.y += sp.vy * 0.025;
+      if (sp.life <= 0) {
+        this.shadowParticles.splice(i, 1);
+        continue;
+      }
+      ctx.save();
+      ctx.globalAlpha = Math.max(0, sp.life / sp.maxLife);
+      ctx.fillStyle = sp.color;
+      ctx.beginPath();
+      ctx.arc(sp.x, sp.y, sp.size, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.restore();
+    }
+
+    // 3. Draw Creepy Watcher Eyes in dark crevices
+    for (const eye of this.watcherEyes) {
+      const dist = Math.hypot(px - eye.x, py - eye.y);
+
+      // Handle flee / caution logic
+      if (dist < eye.fearRadius) {
+        // Scared! Retreat into deep darkness
+        eye.alpha = Math.max(0, eye.alpha - 0.06);
+      } else {
+        // Slowly peek out from shadow
+        eye.alpha = Math.min(eye.targetAlpha, eye.alpha + 0.025);
+      }
+
+      if (eye.alpha <= 0.01) continue;
+
+      // Handle blinking
+      eye.blinkTimer += 0.025;
+      if (!eye.isBlinking && eye.blinkTimer > eye.nextBlink) {
+        eye.isBlinking = true;
+        eye.blinkTimer = 0;
+      }
+      if (eye.isBlinking && eye.blinkTimer > eye.blinkDuration) {
+        eye.isBlinking = false;
+        eye.blinkTimer = 0;
+        eye.nextBlink = 2.5 + Math.random() * 5.0;
+      }
+
+      if (eye.isBlinking) continue;
+
+      // Pupil tracking angle towards player
+      const angle = Math.atan2(py - eye.y, px - eye.x);
+      const lookOffset = Math.min(1.2, dist * 0.015);
+      const pupilX = Math.cos(angle) * lookOffset;
+      const pupilY = Math.sin(angle) * lookOffset;
+
+      ctx.save();
+      ctx.globalAlpha = eye.alpha;
+
+      // Dark crevice shadow behind eyes
+      ctx.fillStyle = 'rgba(2, 3, 6, 0.75)';
+      ctx.beginPath();
+      ctx.ellipse(eye.x, eye.y, eye.spacing + 6, eye.size + 4, 0, 0, Math.PI * 2);
+      ctx.fill();
+
+      // Pair of eyes
+      for (const side of [-1, 1]) {
+        const ex = eye.x + side * (eye.spacing * 0.5);
+        const ey = eye.y;
+
+        // Glowing sclera/iris
+        ctx.fillStyle = eye.irisColor;
+        ctx.shadowColor = eye.irisColor;
+        ctx.shadowBlur = 6;
+        ctx.beginPath();
+        ctx.arc(ex, ey, eye.size, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.shadowBlur = 0;
+
+        // Dilated dark pupil tracking player
+        ctx.fillStyle = '#05070a';
+        ctx.beginPath();
+        ctx.arc(ex + pupilX, ey + pupilY, eye.size * 0.48, 0, Math.PI * 2);
+        ctx.fill();
+
+        // Tiny white specular highlight
+        ctx.fillStyle = '#ffffff';
+        ctx.beginPath();
+        ctx.arc(ex + pupilX - 0.5, ey + pupilY - 0.5, 0.7, 0, Math.PI * 2);
+        ctx.fill();
+      }
+
+      ctx.restore();
+    }
   }
 
   render(game, time) {
@@ -90,6 +346,9 @@ export class Renderer {
     // 4. Dream Dust & Background Critters
     this.drawDreamDust(ctx, biome, time);
     this.drawBackgroundCritters(ctx, biome, time);
+
+    // 4b. Watcher Atmosphere (Eyes in crevices & Stalking Gloam Prowler)
+    this.drawWatcherAtmosphere(ctx, room, game, time);
 
     // 5. Midground Handcrafted Props & Architecture
     this.drawRoomProps(ctx, room, biome, time, game);
@@ -288,48 +547,118 @@ export class Renderer {
     for (const p of solids) {
       ctx.save();
 
-      // Base stone fill
+      // 1. Base stone fill
       ctx.fillStyle = p.isBridge ? '#3d2b1f' : biome.stoneMain;
       ctx.fillRect(p.x, p.y, p.w, p.h);
 
-      // Beveled depth gradient along the face
+      // 2. Stratified Rock Layers & Geological Sediment Striations
+      if (!p.isBridge && p.h >= 24) {
+        ctx.fillStyle = 'rgba(0, 0, 0, 0.18)';
+        for (let sy = p.y + 14; sy < p.y + p.h - 10; sy += 18) {
+          ctx.beginPath();
+          ctx.moveTo(p.x, sy);
+          for (let sx = p.x; sx <= p.x + p.w; sx += 40) {
+            const wave = Math.sin(sx * 0.05 + sy * 0.08) * 2.5;
+            ctx.lineTo(sx, sy + wave);
+          }
+          ctx.lineWidth = 3;
+          ctx.strokeStyle = 'rgba(0, 0, 0, 0.15)';
+          ctx.stroke();
+        }
+      }
+
+      // 3. Beveled depth gradient along the face
       const faceGrad = ctx.createLinearGradient(p.x, p.y, p.x, p.y + p.h);
-      faceGrad.addColorStop(0, 'rgba(255, 255, 255, 0.08)');
-      faceGrad.addColorStop(0.35, 'rgba(0, 0, 0, 0.15)');
-      faceGrad.addColorStop(1, 'rgba(0, 0, 0, 0.55)');
+      faceGrad.addColorStop(0, 'rgba(255, 255, 255, 0.12)');
+      faceGrad.addColorStop(0.2, 'rgba(255, 255, 255, 0.02)');
+      faceGrad.addColorStop(0.55, 'rgba(0, 0, 0, 0.22)');
+      faceGrad.addColorStop(1, 'rgba(0, 0, 0, 0.65)');
       ctx.fillStyle = faceGrad;
       ctx.fillRect(p.x, p.y, p.w, p.h);
 
-      // Top trim (Lush moss for caverns/gardens, crystal rim for crystals, ash molding for ruins)
+      // 4. Top trim & Lush Organic Moss Crust
+      const trimH = Math.min(7, p.h);
       ctx.fillStyle = p.slippery ? '#5ce1e6' : p.isBridge ? '#8f6f4f' : biome.stoneTrim;
-      ctx.fillRect(p.x, p.y, p.w, Math.min(6, p.h));
+      ctx.fillRect(p.x, p.y, p.w, trimH);
 
-      // Organic hanging moss tendrils / ivy fringes
-      if ((biome.id === 'caverns' || biome.id === 'gardens') && !p.oneWay) {
+      // Organic tufted moss blades and dew drops on top surface
+      if ((biome.id === 'caverns' || biome.id === 'gardens' || biome.id === 'sluice') && !p.isBridge) {
         ctx.fillStyle = biome.accent;
-        ctx.globalAlpha = 0.65;
-        for (let tx = p.x + 6; tx < p.x + p.w - 6; tx += 16) {
-          const vineLen = 6 + Math.sin(tx * 0.35) * 5;
+        ctx.globalAlpha = 0.85;
+        // Individual vertical moss blades
+        for (let gx = p.x + 4; gx < p.x + p.w - 4; gx += 7) {
+          const bladeH = 2.5 + Math.sin(gx * 0.45) * 2;
+          ctx.fillRect(gx, p.y - bladeH, 1.8, bladeH + 2);
+        }
+        // Glistening dewdrops
+        ctx.fillStyle = '#ffffff';
+        for (let dx = p.x + 10; dx < p.x + p.w - 10; dx += 28) {
+          const dropY = p.y - 1.5;
           ctx.beginPath();
-          ctx.arc(tx, p.y + Math.min(6, p.h), 2.2, 0, Math.PI * 2);
+          ctx.arc(dx, dropY, 1.2, 0, Math.PI * 2);
           ctx.fill();
-          ctx.fillRect(tx - 1, p.y + Math.min(6, p.h), 2, vineLen);
         }
         ctx.globalAlpha = 1;
       }
 
-      // Crystal facet edge glints for Crystal Depths
+      // 5. Hanging roots, ivy creepers & dripping water
+      if (!p.oneWay) {
+        if (biome.id === 'caverns' || biome.id === 'gardens') {
+          // Gnarled creeping roots clinging to walls and underside
+          ctx.strokeStyle = '#23442c';
+          ctx.lineWidth = 2.5;
+          for (let tx = p.x + 12; tx < p.x + p.w - 12; tx += 26) {
+            const rootLen = 10 + Math.sin(tx * 0.3) * 8;
+            ctx.beginPath();
+            ctx.moveTo(tx, p.y + p.h);
+            ctx.quadraticCurveTo(tx + Math.sin(tx) * 5, p.y + p.h + rootLen * 0.5, tx + Math.cos(tx) * 4, p.y + p.h + rootLen);
+            ctx.stroke();
+
+            // Tiny leaf cluster on root tip
+            ctx.fillStyle = '#49a868';
+            ctx.beginPath();
+            ctx.arc(tx + Math.cos(tx) * 4, p.y + p.h + rootLen, 2.2, 0, Math.PI * 2);
+            ctx.fill();
+          }
+        } else if (biome.id === 'sluice') {
+          // Dripping water droplets
+          ctx.fillStyle = 'rgba(165, 240, 255, 0.75)';
+          for (let dx = p.x + 16; dx < p.x + p.w - 16; dx += 45) {
+            const dripPhase = (time * 2.2 + dx * 0.1) % 1.0;
+            const dy = p.y + p.h + dripPhase * 24;
+            ctx.beginPath();
+            ctx.arc(dx, dy, 1.8 * (1 - dripPhase * 0.5), 0, Math.PI * 2);
+            ctx.fill();
+          }
+        }
+      }
+
+      // 6. Crystal facet edge glints for Crystal Depths
       if (biome.id === 'crystals') {
-        ctx.strokeStyle = 'rgba(210, 126, 255, 0.55)';
-        ctx.lineWidth = 1.5;
+        ctx.strokeStyle = 'rgba(210, 126, 255, 0.65)';
+        ctx.lineWidth = 2;
         ctx.beginPath();
         ctx.moveTo(p.x, p.y);
         ctx.lineTo(p.x + p.w, p.y);
         ctx.stroke();
+
+        // Crystal stalactite shards clinging underneath
+        if (!p.oneWay && p.h > 15) {
+          ctx.fillStyle = '#b174f2';
+          for (let cx = p.x + 18; cx < p.x + p.w - 18; cx += 34) {
+            const ch = 8 + Math.sin(cx) * 5;
+            ctx.beginPath();
+            ctx.moveTo(cx - 3, p.y + p.h);
+            ctx.lineTo(cx, p.y + p.h + ch);
+            ctx.lineTo(cx + 3, p.y + p.h);
+            ctx.closePath();
+            ctx.fill();
+          }
+        }
       }
 
-      // Stone border line
-      ctx.strokeStyle = 'rgba(0, 0, 0, 0.65)';
+      // 7. Stone border line & masonry joints
+      ctx.strokeStyle = 'rgba(0, 0, 0, 0.75)';
       ctx.lineWidth = 1.5;
       ctx.strokeRect(p.x, p.y, p.w, p.h);
 
@@ -1091,132 +1420,261 @@ export class Renderer {
       if (e.dead) continue;
       ctx.save();
       const flash = e.hurtFlash > 0;
+      const walk = e.walkCycle || (time * 10);
+      const wing = e.wingCycle || (time * 16);
+      const breath = e.breathCycle || (time * 3);
 
       switch (e.type) {
         case 'crawler': {
-          // Moss-Scuttler: mossy shell, scurrying legs, back mushroom
-          ctx.fillStyle = flash ? '#ffffff' : '#2b4d34';
-          ctx.beginPath();
-          ctx.ellipse(e.x + e.w / 2, e.y + 14, e.w / 2, 10, 0, 0, Math.PI * 2);
-          ctx.fill();
+          // Moss-Scuttler: 6 articulated scurrying legs, mossy segmented shell, pulsing back-mushroom
+          const cx = e.x + e.w / 2;
+          const cy = e.y + 14;
 
-          // Scurrying legs
-          ctx.strokeStyle = '#1e3323';
+          // 6 Articulated scurrying legs (3 on each side)
+          ctx.strokeStyle = flash ? '#ffffff' : '#182b1d';
           ctx.lineWidth = 2.5;
-          for (let i = -1; i <= 1; i += 2) {
-            const legWiggle = Math.sin(time * 16 + i) * 4;
-            ctx.beginPath();
-            ctx.moveTo(e.x + e.w / 2 + i * 10, e.y + 16);
-            ctx.lineTo(e.x + e.w / 2 + i * 18, e.y + 24 + legWiggle);
-            ctx.stroke();
+          ctx.lineCap = 'round';
+          for (let side = -1; side <= 1; side += 2) {
+            for (let legIdx = 0; legIdx < 3; legIdx++) {
+              const legPhase = walk + legIdx * 1.05 + (side > 0 ? Math.PI : 0);
+              const legLift = Math.sin(legPhase) * 5;
+              const legSweep = Math.cos(legPhase) * 6;
+              const rootX = cx + (legIdx - 1) * 7;
+              const kneeX = rootX + side * 14 + legSweep;
+              const kneeY = cy + 4 - Math.max(0, legLift);
+              const footX = rootX + side * 20 + legSweep * 1.3;
+              const footY = cy + 12 + Math.max(0, -legLift * 0.4);
+
+              ctx.beginPath();
+              ctx.moveTo(rootX, cy);
+              ctx.lineTo(kneeX, kneeY);
+              ctx.lineTo(footX, footY);
+              ctx.stroke();
+            }
           }
 
-          // Little glowing back-mushroom
-          ctx.fillStyle = '#56d38a';
+          // Segmented Mossy Carapace Body
+          ctx.fillStyle = flash ? '#ffffff' : '#23442a';
           ctx.beginPath();
-          ctx.arc(e.x + e.w / 2 - 4, e.y + 2, 4.5, 0, Math.PI * 2);
+          ctx.ellipse(cx, cy, e.w / 2, 9, 0, 0, Math.PI * 2);
           ctx.fill();
 
-          // Glowing amber eye
-          ctx.fillStyle = '#ffe259';
+          // Shell plating highlight
+          ctx.fillStyle = flash ? '#ffffff' : '#396d44';
           ctx.beginPath();
-          ctx.arc(e.facing > 0 ? e.x + e.w - 5 : e.x + 5, e.y + 12, 3, 0, Math.PI * 2);
+          ctx.ellipse(cx, cy - 2, e.w / 2 - 4, 6, 0, 0, Math.PI * 2);
           ctx.fill();
+
+          // Twitching sensory antennae
+          const twitch = Math.sin(time * 14) * 3;
+          ctx.strokeStyle = '#2d5936';
+          ctx.lineWidth = 1.8;
+          ctx.beginPath();
+          ctx.moveTo(e.facing > 0 ? e.x + e.w - 3 : e.x + 3, cy - 2);
+          ctx.lineTo(e.facing > 0 ? e.x + e.w + 8 : e.x - 8, cy - 8 + twitch);
+          ctx.stroke();
+
+          // Pulsing bioluminescent back-mushroom (flares when alert/chasing)
+          const shroomPulse = 1.0 + (e.isAlert ? 0.35 : 0.15) * Math.sin(time * 9);
+          const shroomColor = e.isAlert ? '#ff5c5c' : '#5ce1a2';
+          ctx.fillStyle = shroomColor;
+          ctx.beginPath();
+          ctx.arc(cx - e.facing * 4, cy - 10, 5 * shroomPulse, 0, Math.PI * 2);
+          ctx.fill();
+          // Stem
+          ctx.fillStyle = '#e8dec8';
+          ctx.fillRect(cx - e.facing * 4 - 1.5, cy - 6, 3, 5);
+
+          // Glowing amber eye (dilates when chasing player)
+          const eyeRadius = e.isAlert ? 3.5 : 2.5;
+          ctx.fillStyle = '#ffe259';
+          ctx.shadowColor = '#ffe259';
+          ctx.shadowBlur = 5;
+          ctx.beginPath();
+          ctx.arc(e.facing > 0 ? e.x + e.w - 5 : e.x + 5, cy - 1, eyeRadius, 0, Math.PI * 2);
+          ctx.fill();
+          ctx.shadowBlur = 0;
           break;
         }
 
         case 'sporeling': {
-          // Puffball Sporeling: bouncy round fungal cap
-          const bounce = Math.abs(Math.sin(time * 6)) * 4;
-          ctx.fillStyle = flash ? '#ffffff' : '#398758';
+          // Puffball Sporeling: squash-and-stretch hopping bounce & venting spore chimney
+          const bounce = Math.abs(Math.sin(walk * 0.8)) * 8;
+          const squashX = 1.0 + (bounce > 2 ? -0.15 : 0.25);
+          const squashY = 1.0 + (bounce > 2 ? 0.25 : -0.2);
+          const cx = e.x + e.w / 2;
+          const cy = e.y + e.h / 2 - bounce;
+
+          ctx.save();
+          ctx.translate(cx, cy);
+          ctx.scale(squashX, squashY);
+
+          // Fungal spherical body
+          ctx.fillStyle = flash ? '#ffffff' : '#2d6e46';
           ctx.beginPath();
-          ctx.arc(e.x + e.w / 2, e.y + e.h / 2 - bounce, 14, 0, Math.PI * 2);
+          ctx.arc(0, 0, 14, 0, Math.PI * 2);
           ctx.fill();
 
-          // Spore dots
+          // Spore spots
           ctx.fillStyle = '#8df6fa';
           ctx.beginPath();
-          ctx.arc(e.x + e.w / 2 - 5, e.y + e.h / 2 - 4 - bounce, 2.5, 0, Math.PI * 2);
-          ctx.arc(e.x + e.w / 2 + 5, e.y + e.h / 2 - 5 - bounce, 2.5, 0, Math.PI * 2);
+          ctx.arc(-5, -4, 2.5, 0, Math.PI * 2);
+          ctx.arc(5, -5, 2.5, 0, Math.PI * 2);
+          ctx.arc(0, 4, 2.0, 0, Math.PI * 2);
           ctx.fill();
 
-          // Spore top chimney
-          ctx.fillStyle = '#285e3e';
-          ctx.fillRect(e.x + e.w / 2 - 3, e.y + e.h / 2 - 17 - bounce, 6, 5);
+          // Spore vent chimney
+          ctx.fillStyle = '#1e4a2f';
+          ctx.fillRect(-3, -17, 6, 5);
+
+          // Venting spore ring expanding upward
+          const ringPhase = (breath * 0.8) % 1.0;
+          const ringY = -17 - ringPhase * 16;
+          const ringR = 3 + ringPhase * 7;
+          ctx.strokeStyle = `rgba(141, 246, 250, ${1 - ringPhase})`;
+          ctx.lineWidth = 1.5;
+          ctx.beginPath();
+          ctx.arc(0, ringY, ringR, 0, Math.PI * 2);
+          ctx.stroke();
+
+          ctx.restore();
           break;
         }
 
         case 'bat': {
-          // Gloam-Moth / Leaf-Flitter: leaf wings that flap
-          const flap = Math.sin(time * 16) * 12;
-          ctx.fillStyle = flash ? '#ffffff' : '#1e3328';
+          // Gloam-Moth / Leaf-Flitter: multi-segment leaf/silk wings & drifting pollen motes
+          const flap = Math.sin(wing) * 14;
+          const cx = e.x + e.w / 2;
+          const cy = e.y + e.h / 2;
+
+          // Body
+          ctx.fillStyle = flash ? '#ffffff' : '#192b21';
           ctx.beginPath();
-          ctx.ellipse(e.x + e.w / 2, e.y + e.h / 2, 6, 10, 0, 0, Math.PI * 2);
+          ctx.ellipse(cx, cy, 6, 11, 0, 0, Math.PI * 2);
           ctx.fill();
 
-          // Leaf wings
-          ctx.fillStyle = flash ? '#ffffff' : '#387349';
-          ctx.beginPath();
-          ctx.moveTo(e.x + e.w / 2, e.y + e.h / 2);
-          ctx.lineTo(e.x - 14, e.y + e.h / 2 + flap);
-          ctx.lineTo(e.x + e.w / 2, e.y + e.h / 2 - 6);
-          ctx.moveTo(e.x + e.w / 2, e.y + e.h / 2);
-          ctx.lineTo(e.x + e.w + 14, e.y + e.h / 2 + flap);
-          ctx.lineTo(e.x + e.w / 2, e.y + e.h / 2 - 6);
-          ctx.fill();
+          // Multi-segment gossamer leaf wings
+          ctx.fillStyle = flash ? '#ffffff' : '#336d44';
+          ctx.strokeStyle = '#5de08e';
+          ctx.lineWidth = 1.2;
 
-          // Glowing eyes
+          for (const side of [-1, 1]) {
+            ctx.beginPath();
+            ctx.moveTo(cx, cy - 2);
+            ctx.quadraticCurveTo(cx + side * 18, cy - 14 + flap, cx + side * 26, cy + flap);
+            ctx.quadraticCurveTo(cx + side * 14, cy + 8 + flap * 0.5, cx, cy + 4);
+            ctx.fill();
+            ctx.stroke();
+
+            // Wing leaf veins
+            ctx.beginPath();
+            ctx.moveTo(cx, cy);
+            ctx.lineTo(cx + side * 20, cy + flap * 0.7);
+            ctx.stroke();
+          }
+
+          // Feathery moth antennae
+          ctx.strokeStyle = '#e6decb';
+          ctx.lineWidth = 1.5;
+          ctx.beginPath();
+          ctx.moveTo(cx - 2, cy - 10);
+          ctx.lineTo(cx - 7, cy - 18 + Math.sin(wing * 0.5) * 2);
+          ctx.moveTo(cx + 2, cy - 10);
+          ctx.lineTo(cx + 7, cy - 18 + Math.sin(wing * 0.5) * 2);
+          ctx.stroke();
+
+          // Glowing emerald eyes
           ctx.fillStyle = '#5ce1e6';
           ctx.beginPath();
-          ctx.arc(e.x + e.w / 2 - 2, e.y + e.h / 2 - 5, 2, 0, Math.PI * 2);
-          ctx.arc(e.x + e.w / 2 + 2, e.y + e.h / 2 - 5, 2, 0, Math.PI * 2);
+          ctx.arc(cx - 2, cy - 6, 2.2, 0, Math.PI * 2);
+          ctx.arc(cx + 2, cy - 6, 2.2, 0, Math.PI * 2);
           ctx.fill();
           break;
         }
 
         case 'sentinel': {
-          // Bramble-Bark Sentry: wooden golem with branch shoulders
-          ctx.fillStyle = flash ? '#ffffff' : '#3b2b1d';
-          ctx.fillRect(e.x + 6, e.y + 12, e.w - 12, e.h - 12);
+          // Bramble-Bark Sentry: heavy wooden golem stride, creaking branch arms & pulsing eye slit
+          const cx = e.x + e.w / 2;
+          const stepAngle = Math.sin(walk * 0.5) * 0.25;
 
-          // Head block
-          ctx.fillStyle = flash ? '#ffffff' : '#543d28';
-          ctx.fillRect(e.x + 8, e.y, e.w - 16, 14);
+          // Trunk Legs
+          ctx.fillStyle = flash ? '#ffffff' : '#2e2015';
+          for (const side of [-1, 1]) {
+            const legShift = side * stepAngle * 10;
+            ctx.fillRect(cx + side * 8 - 4, e.y + e.h - 18 + legShift, 8, 18);
+          }
 
-          // Shoulder leaf branches
-          ctx.strokeStyle = '#2f663c';
-          ctx.lineWidth = 3;
+          // Bark Torso
+          ctx.fillStyle = flash ? '#ffffff' : '#453120';
           ctx.beginPath();
-          ctx.moveTo(e.x + 6, e.y + 12);
-          ctx.lineTo(e.x - 6, e.y + 2);
-          ctx.moveTo(e.x + e.w - 6, e.y + 12);
-          ctx.lineTo(e.x + e.w + 6, e.y + 2);
+          ctx.roundRect(e.x + 4, e.y + 10, e.w - 8, e.h - 22, 6);
+          ctx.fill();
+
+          // Bark Head with Moss Crown
+          ctx.fillStyle = flash ? '#ffffff' : '#594029';
+          ctx.fillRect(e.x + 8, e.y, e.w - 16, 14);
+          ctx.fillStyle = '#3a7d4c';
+          ctx.fillRect(e.x + 6, e.y - 3, e.w - 12, 5);
+
+          // Creaking branch arms swinging with momentum
+          const armSwing = Math.sin(walk * 0.5) * 12;
+          ctx.strokeStyle = '#3d2b1c';
+          ctx.lineWidth = 4;
+          ctx.beginPath();
+          ctx.moveTo(e.x + 6, e.y + 14);
+          ctx.lineTo(e.x - 6 - armSwing, e.y + 28);
+          ctx.moveTo(e.x + e.w - 6, e.y + 14);
+          ctx.lineTo(e.x + e.w + 6 + armSwing, e.y + 28);
           ctx.stroke();
 
-          // Glowing green eye slit
-          ctx.fillStyle = '#56d38a';
-          ctx.fillRect(e.facing > 0 ? e.x + e.w - 12 : e.x + 6, e.y + 5, 7, 3);
+          // Glowing vertical ocular slit (pulses alert crimson when chasing)
+          const slitColor = e.isAlert ? '#ff5252' : '#5ce1a2';
+          ctx.fillStyle = slitColor;
+          ctx.shadowColor = slitColor;
+          ctx.shadowBlur = 6;
+          ctx.fillRect(e.facing > 0 ? e.x + e.w - 12 : e.x + 6, e.y + 4, 6, 6);
+          ctx.shadowBlur = 0;
           break;
         }
 
         case 'thumper': {
-          // Root-Horned Brute: massive wooden ram horns
-          ctx.fillStyle = flash ? '#ffffff' : '#2d2217';
-          ctx.fillRect(e.x + 4, e.y + 14, e.w - 8, e.h - 14);
+          // Root-Horned Brute: 4-legged gallop with heavy hooves & massive curved wooden horns
+          const cx = e.x + e.w / 2;
+          const gallop = Math.sin(walk * 0.7);
 
-          // Massive curved wooden horns
-          ctx.strokeStyle = '#8a5c37';
-          ctx.lineWidth = 4.5;
+          // Heavy Hoofed Legs
+          ctx.fillStyle = flash ? '#ffffff' : '#211811';
+          for (let i = -1; i <= 1; i += 2) {
+            const hoofShift = i * gallop * 8;
+            ctx.fillRect(cx + i * 14 - 5, e.y + e.h - 16 + hoofShift, 10, 16);
+          }
+
+          // Massive Hulking Body
+          ctx.fillStyle = flash ? '#ffffff' : '#382718';
           ctx.beginPath();
-          ctx.arc(e.x + e.w / 2 - 10, e.y + 8, 12, Math.PI, Math.PI * 1.8);
-          ctx.arc(e.x + e.w / 2 + 10, e.y + 8, 12, Math.PI * 1.2, 0);
+          ctx.roundRect(e.x + 3, e.y + 10, e.w - 6, e.h - 20, 8);
+          ctx.fill();
+
+          // Massive curved wooden horns (tined)
+          ctx.strokeStyle = '#9c663a';
+          ctx.lineWidth = 5;
+          ctx.beginPath();
+          // Left Horn
+          ctx.moveTo(cx - 10, e.y + 8);
+          ctx.quadraticCurveTo(cx - 24, e.y - 6, cx - 20, e.y - 18);
+          // Right Horn
+          ctx.moveTo(cx + 10, e.y + 8);
+          ctx.quadraticCurveTo(cx + 24, e.y - 6, cx + 20, e.y - 18);
           ctx.stroke();
 
-          // Glowing crimson/amber eye
-          ctx.fillStyle = '#f3a847';
+          // Glowing predator eye
+          ctx.fillStyle = '#ffb347';
+          ctx.shadowColor = '#ffb347';
+          ctx.shadowBlur = 6;
           ctx.beginPath();
-          ctx.arc(e.facing > 0 ? e.x + e.w - 8 : e.x + 8, e.y + 18, 4, 0, Math.PI * 2);
+          ctx.arc(e.facing > 0 ? e.x + e.w - 8 : e.x + 8, e.y + 16, 4.5, 0, Math.PI * 2);
           ctx.fill();
+          ctx.shadowBlur = 0;
           break;
         }
 
@@ -1248,16 +1706,31 @@ export class Renderer {
         }
 
         case 'wisp': {
-          // Forest Will-o'-Wisp: floating cyan spirit orb
+          // Forest Will-o'-Wisp: floating twin spirit motes with trailing silk tails
           const bob = Math.sin(time * 5 + e.x) * 4;
-          const wGrad = ctx.createRadialGradient(e.x + e.w / 2, e.y + e.h / 2 + bob, 1, e.x + e.w / 2, e.y + e.h / 2 + bob, 14);
+          const cx = e.x + e.w / 2;
+          const cy = e.y + e.h / 2 + bob;
+
+          // Outer luminous glow
+          const wGrad = ctx.createRadialGradient(cx, cy, 1, cx, cy, 16);
           wGrad.addColorStop(0, '#ffffff');
-          wGrad.addColorStop(0.5, '#5ce1e6');
+          wGrad.addColorStop(0.4, '#5ce1e6');
           wGrad.addColorStop(1, 'rgba(0,0,0,0)');
           ctx.fillStyle = wGrad;
           ctx.beginPath();
-          ctx.arc(e.x + e.w / 2, e.y + e.h / 2 + bob, 14, 0, Math.PI * 2);
+          ctx.arc(cx, cy, 16, 0, Math.PI * 2);
           ctx.fill();
+
+          // Twin orbiting satellite spirit motes
+          for (let sat = 0; sat < 2; sat++) {
+            const satAngle = time * 7 + sat * Math.PI;
+            const sx = cx + Math.cos(satAngle) * 12;
+            const sy = cy + Math.sin(satAngle) * 7;
+            ctx.fillStyle = '#8df6fa';
+            ctx.beginPath();
+            ctx.arc(sx, sy, 2.5, 0, Math.PI * 2);
+            ctx.fill();
+          }
           break;
         }
 
@@ -1354,35 +1827,89 @@ export class Renderer {
       ctx.globalAlpha = 0.45;
     }
 
+    const px = p.x + p.w / 2;
+    const py = p.y + p.h;
+    const isHealing = (p.healAnimTimer || 0) > 0;
+    const levitate = isHealing ? -Math.sin(time * 6) * 7 - 5 : 0;
+
+    // Apply Squash & Stretch Physics Scale & Levitation
+    ctx.translate(px, py + levitate);
+    ctx.scale(p.scaleX || 1.0, p.scaleY || 1.0);
+
+    // Subtle run lean when sprinting along the ground
+    if (p.onGround && Math.abs(p.vx) > 30) {
+      const runLean = p.facing * Math.min(0.14, Math.abs(p.vx) / 1600);
+      ctx.rotate(runLean);
+    }
+    ctx.translate(-px, -py);
+
+    // Focus Heal Aura: Swirling emerald & cyan will-o'-wisp ring
+    if (isHealing) {
+      const hPulse = 1.0 + 0.2 * Math.sin(time * 8);
+      const hGrad = ctx.createRadialGradient(px, py - 20, 4, px, py - 20, 36 * hPulse);
+      hGrad.addColorStop(0, 'rgba(255, 255, 255, 0.4)');
+      hGrad.addColorStop(0.5, 'rgba(92, 225, 230, 0.25)');
+      hGrad.addColorStop(1, 'rgba(92, 225, 230, 0)');
+      ctx.fillStyle = hGrad;
+      ctx.beginPath();
+      ctx.arc(px, py - 20, 36 * hPulse, 0, Math.PI * 2);
+      ctx.fill();
+
+      // Orbiting healing wisps
+      for (let w = 0; w < 3; w++) {
+        const wAngle = time * 7 + (w * Math.PI * 2) / 3;
+        const wx = px + Math.cos(wAngle) * 22;
+        const wy = py - 20 + Math.sin(wAngle) * 12;
+        ctx.fillStyle = '#6ee68e';
+        ctx.beginPath();
+        ctx.arc(wx, wy, 2.8, 0, Math.PI * 2);
+        ctx.fill();
+      }
+    }
+
     // 1. Layered Woven Moss & Bark Mantle (fluttering cape history)
     ctx.fillStyle = game.hasAbility('thornWard') ? '#2e1840' : '#193824';
     ctx.beginPath();
-    ctx.moveTo(p.x + p.w / 2, p.y + 12);
+    ctx.moveTo(px, p.y + 12);
     for (let i = 0; i < p.capeHistory.length; i++) {
       const pt = p.capeHistory[i];
       ctx.lineTo(pt.x - p.facing * (i * 3.0), pt.y + i * 3.4);
     }
-    ctx.lineTo(p.x + p.w / 2, p.y + p.h - 4);
+    ctx.lineTo(px, p.y + p.h - 4);
     ctx.fill();
 
     // Cape inner silver-birch bark trim
     ctx.fillStyle = '#32573e';
     ctx.beginPath();
-    ctx.moveTo(p.x + p.w / 2, p.y + 16);
+    ctx.moveTo(px, p.y + 16);
     if (p.capeHistory.length > 3) {
       const mid = p.capeHistory[Math.floor(p.capeHistory.length / 2)];
       ctx.lineTo(mid.x - p.facing * 6, mid.y);
     }
-    ctx.lineTo(p.x + p.w / 2, p.y + p.h - 8);
+    ctx.lineTo(px, p.y + p.h - 8);
     ctx.fill();
 
-    // 2. Shadow-Spirit Body
+    // 2. Animated Shadow-Spirit Feet / Steps
+    if (p.onGround && Math.abs(p.vx) > 10) {
+      const stepPhase = p.walkCycle || (time * 12);
+      ctx.fillStyle = '#0a0f12';
+      for (const side of [-1, 1]) {
+        const footLift = Math.sin(stepPhase + (side > 0 ? Math.PI : 0)) * 3;
+        const footX = px + side * 5;
+        const footY = p.y + p.h - Math.max(0, footLift);
+        ctx.beginPath();
+        ctx.arc(footX, footY - 2, 2.5, 0, Math.PI * 2);
+        ctx.fill();
+      }
+    }
+
+    // 3. Shadow-Spirit Body
     ctx.fillStyle = '#0a0f12';
     ctx.beginPath();
     ctx.roundRect(p.x + 4, p.y + 14, p.w - 8, p.h - 14, 6);
     ctx.fill();
 
-    // 3. Wicker Will-o'-Wisp Lantern (at hip)
+    // 4. Wicker Will-o'-Wisp Lantern (at hip)
     const lx = p.x + (p.facing > 0 ? 5 : p.w - 5);
     const ly = p.y + 30;
 
@@ -1403,13 +1930,13 @@ export class Renderer {
     ctx.arc(lx, ly + wispBob, 12 * wispPulse, 0, Math.PI * 2);
     ctx.fill();
 
-    // 4. Shadow Spirit Head
+    // 5. Shadow Spirit Head
     ctx.fillStyle = '#0a0f12';
     ctx.beginPath();
-    ctx.arc(p.x + p.w / 2, p.y + 10, 10, 0, Math.PI * 2);
+    ctx.arc(px, p.y + 10, 10, 0, Math.PI * 2);
     ctx.fill();
 
-    // 5. Branching Wooden Antlers (Trähorn) with delicate leaf buds
+    // 6. Branching Wooden Antlers (Trähorn) with delicate leaf buds
     ctx.strokeStyle = '#4a3525';
     ctx.lineWidth = 2.5;
     ctx.beginPath();
@@ -1436,22 +1963,22 @@ export class Renderer {
     ctx.arc(p.x + p.w - 7, p.y - 14, 1.8, 0, Math.PI * 2);
     ctx.fill();
 
-    // 6. Luminous Azure Spirit Eyes
+    // 7. Luminous Azure Spirit Eyes
     const eyeOffset = p.facing * 3.0;
     // Eye glow aura
     ctx.fillStyle = 'rgba(92, 225, 230, 0.45)';
     ctx.beginPath();
-    ctx.arc(p.x + p.w / 2 + eyeOffset - 3, p.y + 10, 4, 0, Math.PI * 2);
-    ctx.arc(p.x + p.w / 2 + eyeOffset + 3, p.y + 10, 4, 0, Math.PI * 2);
+    ctx.arc(px + eyeOffset - 3, p.y + 10, 4, 0, Math.PI * 2);
+    ctx.arc(px + eyeOffset + 3, p.y + 10, 4, 0, Math.PI * 2);
     ctx.fill();
     // Pure glowing eye cores
     ctx.fillStyle = '#5ce1e6';
     ctx.beginPath();
-    ctx.arc(p.x + p.w / 2 + eyeOffset - 3, p.y + 10, 2.2, 0, Math.PI * 2);
-    ctx.arc(p.x + p.w / 2 + eyeOffset + 3, p.y + 10, 2.2, 0, Math.PI * 2);
+    ctx.arc(px + eyeOffset - 3, p.y + 10, 2.2, 0, Math.PI * 2);
+    ctx.arc(px + eyeOffset + 3, p.y + 10, 2.2, 0, Math.PI * 2);
     ctx.fill();
 
-    // 7. Thorn-Dagger Blade & Emerald Slash Arc
+    // 8. Thorn-Glaive Blade & Emerald Slash Arc
     const atk = p.getAttackBox();
     if (atk) {
       ctx.strokeStyle = atk.isHeavy
