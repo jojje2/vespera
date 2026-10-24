@@ -3973,12 +3973,31 @@ class Renderer {
     if (room.lioraCage && !game.state.worldFlags.cageShattered) {
       const c = room.lioraCage;
       ctx.save();
-      // Liora inside
-      ctx.fillStyle = '#8df6fa';
-      ctx.fillRect(c.x - 11, c.y - 46, 22, 46);
-      ctx.fillStyle = '#ffffff';
+      // Liora inside (Verdant Night-Blossom Weaver)
+      // Robes
+      ctx.fillStyle = '#263b32';
+      ctx.fillRect(c.x - 11, c.y - 44, 22, 44);
+      // Head
+      ctx.fillStyle = '#f0eade';
       ctx.beginPath();
-      ctx.arc(c.x, c.y - 54, 10, 0, Math.PI * 2);
+      ctx.arc(c.x, c.y - 52, 9.5, 0, Math.PI * 2);
+      ctx.fill();
+      // Night-flower crown
+      ctx.fillStyle = '#b174f2';
+      ctx.beginPath();
+      ctx.arc(c.x - 6, c.y - 59, 3.5, 0, Math.PI * 2);
+      ctx.arc(c.x, c.y - 62, 4, 0, Math.PI * 2);
+      ctx.arc(c.x + 6, c.y - 59, 3.5, 0, Math.PI * 2);
+      ctx.fill();
+      // Singing Echo-Glass harmonic crystal
+      const cPulse = 1.0 + 0.2 * Math.sin(time * 5);
+      const cGrad = ctx.createRadialGradient(c.x, c.y - 30, 1, c.x, c.y - 30, 14 * cPulse);
+      cGrad.addColorStop(0, '#ffffff');
+      cGrad.addColorStop(0.4, '#b174f2');
+      cGrad.addColorStop(1, 'rgba(0,0,0,0)');
+      ctx.fillStyle = cGrad;
+      ctx.beginPath();
+      ctx.arc(c.x, c.y - 30, 14 * cPulse, 0, Math.PI * 2);
       ctx.fill();
 
       // Translucent Prismatic Echo-Glass Cage
@@ -4001,26 +4020,144 @@ class Renderer {
       if (n.requiresCageBroken && !game.state.worldFlags.cageShattered) continue;
       const bob = Math.sin(time * 2.6 + n.x) * 2.5;
       ctx.save();
-      // Cloak
-      ctx.fillStyle = '#2f3b57';
-      ctx.beginPath();
-      ctx.moveTo(n.x - 18, n.y);
-      ctx.lineTo(n.x - 11, n.y - 46 + bob);
-      ctx.lineTo(n.x + 11, n.y - 46 + bob);
-      ctx.lineTo(n.x + 18, n.y);
-      ctx.fill();
 
-      // Mask
-      ctx.fillStyle = '#f0ebe1';
-      ctx.beginPath();
-      ctx.arc(n.x, n.y - 54 + bob, 11, 0, Math.PI * 2);
-      ctx.fill();
+      if (n.id === 'orin') {
+        // Mushroom Hermit Chronicler
+        // Mossy cloak
+        ctx.fillStyle = '#223826';
+        ctx.beginPath();
+        ctx.moveTo(n.x - 18, n.y);
+        ctx.lineTo(n.x - 12, n.y - 44 + bob);
+        ctx.lineTo(n.x + 12, n.y - 44 + bob);
+        ctx.lineTo(n.x + 18, n.y);
+        ctx.fill();
+
+        // Birch walking staff
+        ctx.strokeStyle = '#d9cfc1';
+        ctx.lineWidth = 3;
+        ctx.beginPath();
+        ctx.moveTo(n.x + 16, n.y);
+        ctx.lineTo(n.x + 16, n.y - 68 + bob);
+        ctx.stroke();
+        // Amber crystal atop staff
+        ctx.fillStyle = '#f3a847';
+        ctx.beginPath();
+        ctx.arc(n.x + 16, n.y - 70 + bob, 5, 0, Math.PI * 2);
+        ctx.fill();
+
+        // Lichen beard & face
+        ctx.fillStyle = '#e8dec8';
+        ctx.beginPath();
+        ctx.arc(n.x, n.y - 50 + bob, 9, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.fillStyle = '#476949';
+        ctx.beginPath();
+        ctx.arc(n.x, n.y - 44 + bob, 7, 0, Math.PI);
+        ctx.fill();
+
+        // Giant speckled fungal cap (hat)
+        ctx.fillStyle = '#8f462c';
+        ctx.beginPath();
+        ctx.ellipse(n.x, n.y - 58 + bob, 22, 11, 0, Math.PI, 0, false);
+        ctx.fill();
+        ctx.fillStyle = '#f5dfbe';
+        ctx.beginPath();
+        ctx.arc(n.x - 10, n.y - 62 + bob, 2.8, 0, Math.PI * 2);
+        ctx.arc(n.x + 2, n.y - 65 + bob, 3.2, 0, Math.PI * 2);
+        ctx.arc(n.x + 12, n.y - 61 + bob, 2.8, 0, Math.PI * 2);
+        ctx.fill();
+
+      } else if (n.id === 'myra') {
+        // Fungal Apothecary
+        ctx.fillStyle = '#1e3d34';
+        ctx.fillRect(n.x - 12, n.y - 42 + bob, 24, 42);
+        // Face
+        ctx.fillStyle = '#f2ebd9';
+        ctx.beginPath();
+        ctx.arc(n.x, n.y - 48 + bob, 9, 0, Math.PI * 2);
+        ctx.fill();
+        // Teal bioluminescent mushroom cap
+        ctx.fillStyle = '#2bb38f';
+        ctx.beginPath();
+        ctx.ellipse(n.x, n.y - 55 + bob, 20, 10, 0, Math.PI, 0, false);
+        ctx.fill();
+        ctx.fillStyle = '#8df6fa';
+        ctx.beginPath();
+        ctx.arc(n.x - 8, n.y - 58 + bob, 2.5, 0, Math.PI * 2);
+        ctx.arc(n.x + 6, n.y - 59 + bob, 2.8, 0, Math.PI * 2);
+        ctx.fill();
+
+      } else if (n.id === 'sylas') {
+        // Bramble Dryad of Silver Birch
+        ctx.fillStyle = '#dcd8cf';
+        ctx.fillRect(n.x - 7, n.y - 52 + bob, 14, 52);
+        // Emerald vine hair & blooming roses
+        ctx.fillStyle = '#38804e';
+        ctx.beginPath();
+        ctx.arc(n.x, n.y - 58 + bob, 12, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.fillStyle = '#e05368';
+        ctx.beginPath();
+        ctx.arc(n.x - 6, n.y - 62 + bob, 3.5, 0, Math.PI * 2);
+        ctx.arc(n.x + 7, n.y - 60 + bob, 4, 0, Math.PI * 2);
+        ctx.fill();
+
+      } else if (n.id === 'bram') {
+        // Root-Badger Bridgewright
+        ctx.fillStyle = '#3d2f23';
+        ctx.fillRect(n.x - 16, n.y - 38 + bob, 32, 38);
+        ctx.fillStyle = '#9e7947';
+        ctx.fillRect(n.x - 12, n.y - 30 + bob, 24, 20); // Leather apron
+        // Badger snout & amber goggles
+        ctx.fillStyle = '#e8dec8';
+        ctx.beginPath();
+        ctx.arc(n.x, n.y - 44 + bob, 10, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.fillStyle = '#f3a847';
+        ctx.fillRect(n.x - 9, n.y - 47 + bob, 18, 5); // Goggles
+
+      } else if (n.id === 'liora') {
+        // Rescued Sister Liora (Night-Flower Weaver)
+        ctx.fillStyle = '#263b32';
+        ctx.fillRect(n.x - 11, n.y - 44 + bob, 22, 44);
+        ctx.fillStyle = '#f0eade';
+        ctx.beginPath();
+        ctx.arc(n.x, n.y - 52 + bob, 9.5, 0, Math.PI * 2);
+        ctx.fill();
+        // Night-flower crown
+        ctx.fillStyle = '#b174f2';
+        ctx.beginPath();
+        ctx.arc(n.x - 6, n.y - 59 + bob, 3.5, 0, Math.PI * 2);
+        ctx.arc(n.x, n.y - 62 + bob, 4, 0, Math.PI * 2);
+        ctx.arc(n.x + 6, n.y - 59 + bob, 3.5, 0, Math.PI * 2);
+        ctx.fill();
+        // Singing crystal in hands
+        ctx.fillStyle = '#5ce1e6';
+        ctx.beginPath();
+        ctx.arc(n.x, n.y - 32 + bob, 6, 0, Math.PI * 2);
+        ctx.fill();
+
+      } else {
+        // Generic Bramble-Folk Inhabitant
+        ctx.fillStyle = '#2a3b2b';
+        ctx.beginPath();
+        ctx.moveTo(n.x - 16, n.y);
+        ctx.lineTo(n.x - 10, n.y - 46 + bob);
+        ctx.lineTo(n.x + 10, n.y - 46 + bob);
+        ctx.lineTo(n.x + 18, n.y);
+        ctx.fill();
+
+        ctx.fillStyle = '#f0ebe1';
+        ctx.beginPath();
+        ctx.arc(n.x, n.y - 52 + bob, 10, 0, Math.PI * 2);
+        ctx.fill();
+      }
 
       // Floating dialogue beacon glyph
       ctx.fillStyle = '#f3a847';
-      ctx.font = 'bold 14px Georgia';
+      ctx.font = 'bold 15px Georgia';
       ctx.textAlign = 'center';
-      ctx.fillText('❖', n.x, n.y - 76 + bob);
+      ctx.fillText('❖', n.x, n.y - 78 + bob);
       ctx.restore();
     }
   }
@@ -4029,40 +4166,260 @@ class Renderer {
     for (const e of game.enemies) {
       if (e.dead) continue;
       ctx.save();
-      ctx.fillStyle = e.hurtFlash > 0 ? '#ffffff' : '#c03e53';
-      if (e.type === 'sporeling') ctx.fillStyle = e.hurtFlash > 0 ? '#fff' : '#43ba77';
-      if (e.type === 'crystal_golem' || e.type === 'wisp') ctx.fillStyle = e.hurtFlash > 0 ? '#fff' : '#b163ec';
-      if (e.type === 'lurker') ctx.fillStyle = e.hurtFlash > 0 ? '#fff' : '#3d9ec0';
+      const flash = e.hurtFlash > 0;
 
-      ctx.beginPath();
-      ctx.roundRect(e.x, e.y, e.w, e.h, 7);
-      ctx.fill();
+      switch (e.type) {
+        case 'crawler': {
+          // Moss-Scuttler: mossy shell, scurrying legs, back mushroom
+          ctx.fillStyle = flash ? '#ffffff' : '#2b4d34';
+          ctx.beginPath();
+          ctx.ellipse(e.x + e.w / 2, e.y + 14, e.w / 2, 10, 0, 0, Math.PI * 2);
+          ctx.fill();
 
-      // Glowing eyes
-      ctx.fillStyle = '#ffe985';
-      const eyeX = e.facing > 0 ? e.x + e.w - 10 : e.x + 6;
-      ctx.beginPath();
-      ctx.arc(eyeX, e.y + 10, 3.5, 0, Math.PI * 2);
-      ctx.fill();
+          // Scurrying legs
+          ctx.strokeStyle = '#1e3323';
+          ctx.lineWidth = 2.5;
+          for (let i = -1; i <= 1; i += 2) {
+            const legWiggle = Math.sin(time * 16 + i) * 4;
+            ctx.beginPath();
+            ctx.moveTo(e.x + e.w / 2 + i * 10, e.y + 16);
+            ctx.lineTo(e.x + e.w / 2 + i * 18, e.y + 24 + legWiggle);
+            ctx.stroke();
+          }
+
+          // Little glowing back-mushroom
+          ctx.fillStyle = '#56d38a';
+          ctx.beginPath();
+          ctx.arc(e.x + e.w / 2 - 4, e.y + 2, 4.5, 0, Math.PI * 2);
+          ctx.fill();
+
+          // Glowing amber eye
+          ctx.fillStyle = '#ffe259';
+          ctx.beginPath();
+          ctx.arc(e.facing > 0 ? e.x + e.w - 5 : e.x + 5, e.y + 12, 3, 0, Math.PI * 2);
+          ctx.fill();
+          break;
+        }
+
+        case 'sporeling': {
+          // Puffball Sporeling: bouncy round fungal cap
+          const bounce = Math.abs(Math.sin(time * 6)) * 4;
+          ctx.fillStyle = flash ? '#ffffff' : '#398758';
+          ctx.beginPath();
+          ctx.arc(e.x + e.w / 2, e.y + e.h / 2 - bounce, 14, 0, Math.PI * 2);
+          ctx.fill();
+
+          // Spore dots
+          ctx.fillStyle = '#8df6fa';
+          ctx.beginPath();
+          ctx.arc(e.x + e.w / 2 - 5, e.y + e.h / 2 - 4 - bounce, 2.5, 0, Math.PI * 2);
+          ctx.arc(e.x + e.w / 2 + 5, e.y + e.h / 2 - 5 - bounce, 2.5, 0, Math.PI * 2);
+          ctx.fill();
+
+          // Spore top chimney
+          ctx.fillStyle = '#285e3e';
+          ctx.fillRect(e.x + e.w / 2 - 3, e.y + e.h / 2 - 17 - bounce, 6, 5);
+          break;
+        }
+
+        case 'bat': {
+          // Gloam-Moth / Leaf-Flitter: leaf wings that flap
+          const flap = Math.sin(time * 16) * 12;
+          ctx.fillStyle = flash ? '#ffffff' : '#1e3328';
+          ctx.beginPath();
+          ctx.ellipse(e.x + e.w / 2, e.y + e.h / 2, 6, 10, 0, 0, Math.PI * 2);
+          ctx.fill();
+
+          // Leaf wings
+          ctx.fillStyle = flash ? '#ffffff' : '#387349';
+          ctx.beginPath();
+          ctx.moveTo(e.x + e.w / 2, e.y + e.h / 2);
+          ctx.lineTo(e.x - 14, e.y + e.h / 2 + flap);
+          ctx.lineTo(e.x + e.w / 2, e.y + e.h / 2 - 6);
+          ctx.moveTo(e.x + e.w / 2, e.y + e.h / 2);
+          ctx.lineTo(e.x + e.w + 14, e.y + e.h / 2 + flap);
+          ctx.lineTo(e.x + e.w / 2, e.y + e.h / 2 - 6);
+          ctx.fill();
+
+          // Glowing eyes
+          ctx.fillStyle = '#5ce1e6';
+          ctx.beginPath();
+          ctx.arc(e.x + e.w / 2 - 2, e.y + e.h / 2 - 5, 2, 0, Math.PI * 2);
+          ctx.arc(e.x + e.w / 2 + 2, e.y + e.h / 2 - 5, 2, 0, Math.PI * 2);
+          ctx.fill();
+          break;
+        }
+
+        case 'sentinel': {
+          // Bramble-Bark Sentry: wooden golem with branch shoulders
+          ctx.fillStyle = flash ? '#ffffff' : '#3b2b1d';
+          ctx.fillRect(e.x + 6, e.y + 12, e.w - 12, e.h - 12);
+
+          // Head block
+          ctx.fillStyle = flash ? '#ffffff' : '#543d28';
+          ctx.fillRect(e.x + 8, e.y, e.w - 16, 14);
+
+          // Shoulder leaf branches
+          ctx.strokeStyle = '#2f663c';
+          ctx.lineWidth = 3;
+          ctx.beginPath();
+          ctx.moveTo(e.x + 6, e.y + 12);
+          ctx.lineTo(e.x - 6, e.y + 2);
+          ctx.moveTo(e.x + e.w - 6, e.y + 12);
+          ctx.lineTo(e.x + e.w + 6, e.y + 2);
+          ctx.stroke();
+
+          // Glowing green eye slit
+          ctx.fillStyle = '#56d38a';
+          ctx.fillRect(e.facing > 0 ? e.x + e.w - 12 : e.x + 6, e.y + 5, 7, 3);
+          break;
+        }
+
+        case 'thumper': {
+          // Root-Horned Brute: massive wooden ram horns
+          ctx.fillStyle = flash ? '#ffffff' : '#2d2217';
+          ctx.fillRect(e.x + 4, e.y + 14, e.w - 8, e.h - 14);
+
+          // Massive curved wooden horns
+          ctx.strokeStyle = '#8a5c37';
+          ctx.lineWidth = 4.5;
+          ctx.beginPath();
+          ctx.arc(e.x + e.w / 2 - 10, e.y + 8, 12, Math.PI, Math.PI * 1.8);
+          ctx.arc(e.x + e.w / 2 + 10, e.y + 8, 12, Math.PI * 1.2, 0);
+          ctx.stroke();
+
+          // Glowing crimson/amber eye
+          ctx.fillStyle = '#f3a847';
+          ctx.beginPath();
+          ctx.arc(e.facing > 0 ? e.x + e.w - 8 : e.x + 8, e.y + 18, 4, 0, Math.PI * 2);
+          ctx.fill();
+          break;
+        }
+
+        case 'crystal_golem': {
+          // Geode-Bramble Golem: boulder bound in roots with open glowing geode
+          ctx.fillStyle = flash ? '#ffffff' : '#352e42';
+          ctx.beginPath();
+          ctx.roundRect(e.x + 4, e.y + 4, e.w - 8, e.h - 8, 8);
+          ctx.fill();
+
+          // Glowing amethyst geode in chest
+          ctx.fillStyle = '#b174f2';
+          ctx.beginPath();
+          ctx.arc(e.x + e.w / 2, e.y + e.h / 2, 9, 0, Math.PI * 2);
+          ctx.fill();
+          ctx.fillStyle = '#ffffff';
+          ctx.beginPath();
+          ctx.arc(e.x + e.w / 2, e.y + e.h / 2, 4, 0, Math.PI * 2);
+          ctx.fill();
+
+          // Thorny vine binding
+          ctx.strokeStyle = '#285233';
+          ctx.lineWidth = 2.5;
+          ctx.beginPath();
+          ctx.moveTo(e.x + 4, e.y + 12);
+          ctx.lineTo(e.x + e.w - 4, e.y + e.h - 12);
+          ctx.stroke();
+          break;
+        }
+
+        case 'wisp': {
+          // Forest Will-o'-Wisp: floating cyan spirit orb
+          const bob = Math.sin(time * 5 + e.x) * 4;
+          const wGrad = ctx.createRadialGradient(e.x + e.w / 2, e.y + e.h / 2 + bob, 1, e.x + e.w / 2, e.y + e.h / 2 + bob, 14);
+          wGrad.addColorStop(0, '#ffffff');
+          wGrad.addColorStop(0.5, '#5ce1e6');
+          wGrad.addColorStop(1, 'rgba(0,0,0,0)');
+          ctx.fillStyle = wGrad;
+          ctx.beginPath();
+          ctx.arc(e.x + e.w / 2, e.y + e.h / 2 + bob, 14, 0, Math.PI * 2);
+          ctx.fill();
+          break;
+        }
+
+        default: {
+          // General Shadow-Bramble Creature
+          ctx.fillStyle = flash ? '#ffffff' : '#2a3b2b';
+          ctx.beginPath();
+          ctx.roundRect(e.x, e.y, e.w, e.h, 6);
+          ctx.fill();
+
+          ctx.fillStyle = '#56d38a';
+          ctx.beginPath();
+          ctx.arc(e.facing > 0 ? e.x + e.w - 8 : e.x + 8, e.y + 10, 3.5, 0, Math.PI * 2);
+          ctx.fill();
+          break;
+        }
+      }
       ctx.restore();
     }
 
+    // Bosses (Primal Undercroft Guardians)
     if (game.activeBoss && !game.activeBoss.dead) {
       const b = game.activeBoss;
       ctx.save();
-      ctx.fillStyle = b.hurtFlash > 0 ? '#ffffff' : b.type === 'boss_stalker' ? '#33b36e' : b.type === 'boss_prism' ? '#9d4deb' : '#cf3052';
-      ctx.beginPath();
-      ctx.roundRect(b.x, b.y, b.w, b.h, 14);
-      ctx.fill();
-      ctx.strokeStyle = '#f5d799';
-      ctx.lineWidth = 3.5;
-      ctx.stroke();
+      const flash = b.hurtFlash > 0;
 
-      // Crown / Horns
-      ctx.fillStyle = '#ffffff';
-      ctx.beginPath();
-      ctx.arc(b.x + b.w / 2 + b.facing * 14, b.y + 24, 7, 0, Math.PI * 2);
-      ctx.fill();
+      if (b.type === 'boss_stalker') {
+        // The Brood-Matriarch (Horned Stag-Beetle with bioluminescent flora)
+        ctx.fillStyle = flash ? '#ffffff' : '#21422c';
+        ctx.beginPath();
+        ctx.roundRect(b.x, b.y + 14, b.w, b.h - 14, 16);
+        ctx.fill();
+
+        // Giant branching root-horns
+        ctx.strokeStyle = '#8f5c35';
+        ctx.lineWidth = 5;
+        ctx.beginPath();
+        ctx.moveTo(b.x + b.w / 2 + b.facing * 10, b.y + 16);
+        ctx.lineTo(b.x + b.w / 2 + b.facing * 35, b.y - 18);
+        ctx.lineTo(b.x + b.w / 2 + b.facing * 48, b.y - 14);
+        ctx.stroke();
+
+        // Back flora garden (glowing mushrooms)
+        ctx.fillStyle = '#56d38a';
+        ctx.beginPath();
+        ctx.arc(b.x + 20, b.y + 12, 7, 0, Math.PI * 2);
+        ctx.arc(b.x + 40, b.y + 8, 8.5, 0, Math.PI * 2);
+        ctx.fill();
+
+      } else if (b.type === 'boss_archon') {
+        // Archon Malakor (Fallen Elder Spirit with Briar-Thorn Crown & Branch Wings)
+        ctx.fillStyle = flash ? '#ffffff' : '#140c1a';
+        ctx.beginPath();
+        ctx.roundRect(b.x, b.y + 12, b.w, b.h - 12, 14);
+        ctx.fill();
+
+        // Jagged Thorn-Crown
+        ctx.strokeStyle = '#e05368';
+        ctx.lineWidth = 3.5;
+        ctx.beginPath();
+        ctx.moveTo(b.x + 10, b.y + 14);
+        ctx.lineTo(b.x + 18, b.y - 8);
+        ctx.lineTo(b.x + b.w / 2, b.y + 8);
+        ctx.lineTo(b.x + b.w - 18, b.y - 8);
+        ctx.lineTo(b.x + b.w - 10, b.y + 14);
+        ctx.stroke();
+
+        // Glowing Abyssal Void Heart
+        ctx.fillStyle = '#e05368';
+        ctx.beginPath();
+        ctx.arc(b.x + b.w / 2, b.y + 40, 10, 0, Math.PI * 2);
+        ctx.fill();
+
+      } else {
+        // The Prism Warden
+        ctx.fillStyle = flash ? '#ffffff' : '#2b1b42';
+        ctx.beginPath();
+        ctx.roundRect(b.x, b.y, b.w, b.h, 14);
+        ctx.fill();
+
+        ctx.fillStyle = '#b174f2';
+        ctx.beginPath();
+        ctx.arc(b.x + b.w / 2, b.y + b.h / 2, 14, 0, Math.PI * 2);
+        ctx.fill();
+      }
+
       ctx.restore();
     }
   }
@@ -4073,69 +4430,111 @@ class Renderer {
       ctx.globalAlpha = 0.45;
     }
 
-    // Dynamic Flowing Velvet Cloak
-    ctx.fillStyle = game.hasAbility('thornWard') ? '#49206b' : '#1e3052';
+    // 1. Layered Woven Moss & Bark Mantle (fluttering cape history)
+    ctx.fillStyle = game.hasAbility('thornWard') ? '#2e1840' : '#193824';
     ctx.beginPath();
     ctx.moveTo(p.x + p.w / 2, p.y + 12);
     for (let i = 0; i < p.capeHistory.length; i++) {
       const pt = p.capeHistory[i];
-      ctx.lineTo(pt.x - p.facing * (i * 2.8), pt.y + i * 3.4);
+      ctx.lineTo(pt.x - p.facing * (i * 3.0), pt.y + i * 3.4);
     }
     ctx.lineTo(p.x + p.w / 2, p.y + p.h - 4);
     ctx.fill();
 
-    // Body Cloak
-    ctx.fillStyle = '#141e33';
+    // Cape inner silver-birch bark trim
+    ctx.fillStyle = '#32573e';
     ctx.beginPath();
-    ctx.roundRect(p.x + 3, p.y + 14, p.w - 6, p.h - 14, 6);
+    ctx.moveTo(p.x + p.w / 2, p.y + 16);
+    if (p.capeHistory.length > 3) {
+      const mid = p.capeHistory[Math.floor(p.capeHistory.length / 2)];
+      ctx.lineTo(mid.x - p.facing * 6, mid.y);
+    }
+    ctx.lineTo(p.x + p.w / 2, p.y + p.h - 8);
     ctx.fill();
 
-    // Soul-Lantern with pulsating celestial glow
-    const lanternPulse = 1.0 + 0.15 * Math.sin(time * 8);
-    const lx = p.x + (p.facing > 0 ? 6 : p.w - 6);
+    // 2. Shadow-Spirit Body
+    ctx.fillStyle = '#0a0f12';
+    ctx.beginPath();
+    ctx.roundRect(p.x + 4, p.y + 14, p.w - 8, p.h - 14, 6);
+    ctx.fill();
+
+    // 3. Wicker Will-o'-Wisp Lantern (at hip)
+    const lx = p.x + (p.facing > 0 ? 5 : p.w - 5);
     const ly = p.y + 30;
 
-    const lanternAura = ctx.createRadialGradient(lx, ly, 1, lx, ly, 12 * lanternPulse);
-    lanternAura.addColorStop(0, '#ffffff');
-    lanternAura.addColorStop(0.4, '#5ce1e6');
-    lanternAura.addColorStop(1, 'rgba(0,0,0,0)');
-    ctx.fillStyle = lanternAura;
+    // Wicker basket frame
+    ctx.strokeStyle = '#5c4530';
+    ctx.lineWidth = 2;
+    ctx.strokeRect(lx - 5, ly - 7, 10, 14);
+
+    // Living, bobbing Will-o'-Wisp inside
+    const wispBob = Math.sin(time * 8) * 2;
+    const wispPulse = 1.0 + 0.2 * Math.sin(time * 10);
+    const wispGrad = ctx.createRadialGradient(lx, ly + wispBob, 1, lx, ly + wispBob, 12 * wispPulse);
+    wispGrad.addColorStop(0, '#ffffff');
+    wispGrad.addColorStop(0.45, '#5ce1e6');
+    wispGrad.addColorStop(1, 'rgba(0,0,0,0)');
+    ctx.fillStyle = wispGrad;
     ctx.beginPath();
-    ctx.arc(lx, ly, 12 * lanternPulse, 0, Math.PI * 2);
+    ctx.arc(lx, ly + wispBob, 12 * wispPulse, 0, Math.PI * 2);
     ctx.fill();
 
-    // Expressive Pale Horned Mask
-    ctx.fillStyle = '#f6f2ea';
+    // 4. Shadow Spirit Head
+    ctx.fillStyle = '#0a0f12';
     ctx.beginPath();
-    ctx.arc(p.x + p.w / 2, p.y + 10, 11, 0, Math.PI * 2);
+    ctx.arc(p.x + p.w / 2, p.y + 10, 10, 0, Math.PI * 2);
     ctx.fill();
 
-    // Curved Horns
-    ctx.strokeStyle = '#f6f2ea';
-    ctx.lineWidth = 3;
+    // 5. Branching Wooden Antlers (Trähorn) with delicate leaf buds
+    ctx.strokeStyle = '#4a3525';
+    ctx.lineWidth = 2.5;
     ctx.beginPath();
-    ctx.moveTo(p.x + 8, p.y + 4);
-    ctx.lineTo(p.x + 3, p.y - 8);
-    ctx.moveTo(p.x + p.w - 8, p.y + 4);
-    ctx.lineTo(p.x + p.w - 3, p.y - 8);
+    // Left antler
+    ctx.moveTo(p.x + 8, p.y + 5);
+    ctx.lineTo(p.x + 2, p.y - 7);
+    ctx.lineTo(p.x - 3, p.y - 12);
+    ctx.moveTo(p.x + 2, p.y - 7);
+    ctx.lineTo(p.x + 7, p.y - 14);
+    // Right antler
+    ctx.moveTo(p.x + p.w - 8, p.y + 5);
+    ctx.lineTo(p.x + p.w - 2, p.y - 7);
+    ctx.lineTo(p.x + p.w + 3, p.y - 12);
+    ctx.moveTo(p.x + p.w - 2, p.y - 7);
+    ctx.lineTo(p.x + p.w - 7, p.y - 14);
     ctx.stroke();
 
-    // Obsidian Eyes
-    ctx.fillStyle = '#060810';
-    const eyeOffset = p.facing * 3.2;
+    // Leaf buds on antler tips
+    ctx.fillStyle = '#6ee68e';
+    ctx.beginPath();
+    ctx.arc(p.x - 3, p.y - 12, 1.8, 0, Math.PI * 2);
+    ctx.arc(p.x + 7, p.y - 14, 1.8, 0, Math.PI * 2);
+    ctx.arc(p.x + p.w + 3, p.y - 12, 1.8, 0, Math.PI * 2);
+    ctx.arc(p.x + p.w - 7, p.y - 14, 1.8, 0, Math.PI * 2);
+    ctx.fill();
+
+    // 6. Luminous Azure Spirit Eyes
+    const eyeOffset = p.facing * 3.0;
+    // Eye glow aura
+    ctx.fillStyle = 'rgba(92, 225, 230, 0.45)';
+    ctx.beginPath();
+    ctx.arc(p.x + p.w / 2 + eyeOffset - 3, p.y + 10, 4, 0, Math.PI * 2);
+    ctx.arc(p.x + p.w / 2 + eyeOffset + 3, p.y + 10, 4, 0, Math.PI * 2);
+    ctx.fill();
+    // Pure glowing eye cores
+    ctx.fillStyle = '#5ce1e6';
     ctx.beginPath();
     ctx.arc(p.x + p.w / 2 + eyeOffset - 3, p.y + 10, 2.2, 0, Math.PI * 2);
     ctx.arc(p.x + p.w / 2 + eyeOffset + 3, p.y + 10, 2.2, 0, Math.PI * 2);
     ctx.fill();
 
-    // Sword Slash / Resonance Strike High-Res Arc
+    // 7. Thorn-Dagger Blade & Emerald Slash Arc
     const atk = p.getAttackBox();
     if (atk) {
       ctx.strokeStyle = atk.isHeavy
-        ? '#d27eff'
+        ? '#56d38a'
         : game.state.worldFlags.bladeTempered
         ? '#ffbe55'
-        : '#8df6fa';
+        : '#5ce1e6';
       ctx.lineWidth = atk.isHeavy ? 9 : 5.5;
       ctx.beginPath();
       ctx.arc(
@@ -4146,6 +4545,12 @@ class Renderer {
         Math.PI * 1.45
       );
       ctx.stroke();
+
+      // Trailing thorn spark
+      ctx.fillStyle = '#ffffff';
+      ctx.beginPath();
+      ctx.arc(atk.x + atk.w * 0.8, atk.y + atk.h * 0.2, 3, 0, Math.PI * 2);
+      ctx.fill();
     }
 
     ctx.restore();
