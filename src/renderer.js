@@ -30,12 +30,14 @@ export class Renderer {
     this.atlasCanvas = atlasCanvas;
     this.atlasCtx = atlasCanvas.getContext('2d');
 
-    // High-DPI 2x Super-Sampled Resolution (2560x1440 QHD internal rendering)
+    // Native 1280x720 HD Resolution with High-Quality Antialiasing
     this.viewW = 1280;
     this.viewH = 720;
-    this.dpiScale = 2;
-    this.canvas.width = this.viewW * this.dpiScale;
-    this.canvas.height = this.viewH * this.dpiScale;
+    this.dpiScale = 1;
+    this.canvas.width = this.viewW;
+    this.canvas.height = this.viewH;
+    this.ctx.imageSmoothingEnabled = true;
+    this.ctx.imageSmoothingQuality = 'high';
 
     // Offscreen lightmap canvas for localized pools of light
     this.lightCanvas = document.createElement('canvas');
