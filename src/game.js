@@ -351,8 +351,12 @@ export class Game {
 
     // Controls Rebinding Reset Button
     document.getElementById('btn-reset-controls')?.addEventListener('click', () => {
+      if (this.activeRebindBtn) {
+        this.input.cancelRebind();
+        this.activeRebindBtn = null;
+      }
       this.input.resetBindings();
-      audio.interact();
+      if (audio.interact) audio.interact();
       this.renderControlsTab();
       this.updateInteractionKeyCap();
       this.showToast('Kontroller Återställda', 'Alla tangenter har återställts till fabriksinställningarna.');
@@ -1742,18 +1746,25 @@ export class Game {
   }
 
   startRebindingKey(action, slot, buttonEl) {
-    if (this.activeRebindBtn && this.activeRebindBtn !== buttonEl) {
+    if (this.activeRebindBtn) {
       this.input.cancelRebind();
-      this.renderControlsTab();
+      this.activeRebindBtn.classList.remove('listening');
+      this.activeRebindBtn = null;
     }
 
+    buttonEl.blur();
     this.activeRebindBtn = buttonEl;
     buttonEl.classList.add('listening');
     buttonEl.textContent = 'Tryck tangent...';
 
     this.input.startRebind((code) => {
-      buttonEl.classList.remove('listening');
       this.activeRebindBtn = null;
+      buttonEl.classList.remove('listening');
+
+      if (!code) {
+        this.renderControlsTab();
+        return;
+      }
 
       // Cancel if user pressed Escape and is not rebinding 'pause'
       if (code === 'Escape' && action !== 'pause') {
@@ -1761,8 +1772,21 @@ export class Game {
         return;
       }
 
+      // Clear key if user pressed Backspace or Delete
+      if (code === 'Backspace' || code === 'Delete') {
+        this.input.setBinding(action, slot, '');
+        if (audio.interact) audio.interact();
+        this.renderControlsTab();
+        this.updateInteractionKeyCap();
+        this.showToast(
+          'Tangent Rensad',
+          `${this.input.bindings[action].label} (${slot === 'primary' ? 'primär' : 'sekundär'}) har rensats.`
+        );
+        return;
+      }
+
       this.input.setBinding(action, slot, code);
-      audio.interact();
+      if (audio.interact) audio.interact();
       this.renderControlsTab();
       this.updateInteractionKeyCap();
       this.showToast(

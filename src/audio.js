@@ -245,6 +245,10 @@ export class AudioEngine {
   npcVoice(pitch = 320) {
     this.playTone(pitch, pitch * (0.9 + Math.random() * 0.25), 0.07, 'triangle', 0.15);
   }
+
+  interact() {
+    this.playTone(520, 680, 0.12, 'sine', 0.22);
+  }
 }
 
 export const audio = new AudioEngine();
