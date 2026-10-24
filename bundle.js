@@ -2692,8 +2692,8 @@ class Player {
 
     if (this.jumpBuffer > 0) {
       if (this.coyoteTimer > 0) {
-        // Normal or Coyote Jump
-        this.vy = -565;
+        // Normal or Coyote Jump (tuned 20% higher so Kaelen reaches all platforms cleanly)
+        this.vy = -680;
         this.scaleY = 1.30;
         this.scaleX = 0.76;
         this.onGround = false;
@@ -2704,10 +2704,10 @@ class Player {
         game.spawnParticles(this.x + this.w / 2, this.y + this.h, '#d4b886', 8, 75);
       } else if (this.wallSide !== 0 && game.hasAbility('wallJump')) {
         // Wall Jump
-        this.vy = -540;
+        this.vy = -650;
         this.scaleY = 1.32;
         this.scaleX = 0.74;
-        this.vx = -this.wallSide * 320;
+        this.vx = -this.wallSide * 340;
         this.facing = -this.wallSide;
         this.wallJumpLock = 0.15;
         this.jumpBuffer = 0;
@@ -2722,7 +2722,7 @@ class Player {
         );
       } else if (this.canDoubleJump && game.hasAbility('doubleJump')) {
         // Double Jump (Zephyr Plume)
-        this.vy = -535;
+        this.vy = -640;
         this.scaleY = 1.36;
         this.scaleX = 0.72;
         this.canDoubleJump = false;
@@ -2733,7 +2733,7 @@ class Player {
     }
 
     // Variable Jump Height when releasing Jump button early
-    if (!input.isDown('jump') && this.vy < -220) {
+    if (!input.isDown('jump') && this.vy < -260) {
       this.vy *= 0.62;
     }
 
@@ -2803,8 +2803,10 @@ class Player {
     this.x += this.vx * dt;
     this.wallSide = 0;
     const solids = game.getSolidPlatforms();
+    const isOneWayPlat = (p) => p.oneWay || (p.h <= 26 && p.y > 60 && p.y < 850);
+
     for (const p of solids) {
-      if (p.oneWay) continue;
+      if (isOneWayPlat(p)) continue;
       if (rectOverlap(this, p)) {
         if (this.vx > 0) {
           this.x = p.x - this.w;
@@ -2823,7 +2825,7 @@ class Player {
     // Also detect adjacent wall within 3px for responsive Wall Jump
     if (!this.onGround && this.wallSide === 0) {
       for (const p of solids) {
-        if (p.oneWay) continue;
+        if (isOneWayPlat(p)) continue;
         if (this.y + this.h > p.y + 6 && this.y < p.y + p.h - 6) {
           if (Math.abs(this.x + this.w - p.x) <= 4) this.wallSide = 1;
           else if (Math.abs(this.x - (p.x + p.w)) <= 4) this.wallSide = -1;
@@ -2839,11 +2841,11 @@ class Player {
     this.onSlippery = false;
 
     for (const p of solids) {
-      if (p.oneWay) {
+      if (isOneWayPlat(p)) {
         // One-way platform: only collide when falling from above and not holding down+jump
         if (
           this.vy >= 0 &&
-          prevBottom <= p.y + 12 &&
+          prevBottom <= p.y + 14 &&
           !(input.isDown('down') && input.isDown('jump')) &&
           rectOverlap(this, p)
         ) {
